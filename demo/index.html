@@ -90,6 +90,36 @@
   .hint { font-size:.78rem; color:var(--mute); background:var(--pane); padding:7px 12px;
           border-radius:999px; border:1px solid var(--hair); backdrop-filter:blur(14px); }
 
+  /* Integration panel: the code for whatever you just clicked. */
+  .api {
+    position:fixed; top:0; right:0; bottom:0; width:min(560px,100vw); z-index:5;
+    background:var(--pane); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-left:1px solid var(--hair); padding:22px 24px; overflow-y:auto;
+    transform:translateX(100%); transition:transform .32s cubic-bezier(.4,0,.2,1);
+  }
+  .api.on { transform:none; }
+  .api h2 { font-size:1.05rem; margin:0 0 4px; }
+  .api p.lede { margin:0 0 16px; color:var(--mute); font-size:.86rem; }
+  .api .close { position:absolute; top:16px; right:18px; padding:6px 11px; font-size:.85rem; }
+  .baserow { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .baserow label { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--mute); }
+  .baserow input { flex:1; min-width:0; padding:8px 10px; font:inherit; font-size:.84rem;
+    color:var(--ink); background:var(--white); border:1px solid var(--hair); border-radius:8px; }
+  .tabs { display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+  .tabs button { padding:6px 12px; font-size:.82rem; border-radius:8px; background:transparent;
+                 border:1px solid transparent; color:var(--mute); }
+  .tabs button[aria-selected=true] { background:var(--red); color:#fff; border-color:transparent; }
+  .code { position:relative; }
+  .code pre {
+    margin:0; padding:14px 16px; border-radius:12px; background:var(--tint);
+    border:1px solid var(--hair); overflow-x:auto; font-size:.79rem; line-height:1.65;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--ink);
+  }
+  .code .copy { position:absolute; top:9px; right:9px; padding:5px 10px; font-size:.75rem; }
+  .api h3 { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
+            color:var(--mute); margin:20px 0 8px; font-weight:600; }
+  .api a { color:var(--red); }
+
   /* Loading + fallback share one centred pane. */
   .center {
     position:fixed; inset:0; display:grid; place-items:center; z-index:4;
@@ -127,8 +157,40 @@
 
 <div class="controls">
   <div class="hint" id="hint">Drag to spin · click anywhere</div>
-  <button class="primary" id="here">Use my location</button>
+  <div style="display:flex;gap:8px">
+    <button id="apiBtn">&lt;/&gt; API</button>
+    <button class="primary" id="here">Use my location</button>
+  </div>
 </div>
+
+<aside class="api" id="api" aria-hidden="true">
+  <button class="close" id="apiClose">Close</button>
+  <h2>Connect your app</h2>
+  <p class="lede">Live code for the point you just picked. Change the host and every snippet updates.</p>
+
+  <div class="baserow">
+    <label for="base">Host</label>
+    <input id="base" value="http://localhost:3000" spellcheck="false">
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="code">
+    <button class="copy" id="copy">Copy</button>
+    <pre><code id="snippet"></code></pre>
+  </div>
+
+  <h3>Response</h3>
+  <div class="code"><pre><code id="resp"></code></pre></div>
+
+  <h3>Ready-made connectors</h3>
+  <p class="lede" style="margin:0">
+    <a href="https://github.com/Dibakar01/reverse-geocoding/tree/main/connectors" target="_blank" rel="noopener">connectors/</a>
+    has drop-in clients for the browser, React, Node and Python — each with caching,
+    timeouts and validation. There is an
+    <a href="https://github.com/Dibakar01/reverse-geocoding/blob/main/openapi.yaml" target="_blank" rel="noopener">OpenAPI spec</a>
+    too, so Postman and code generators can import the API directly.
+  </p>
+</aside>
 
 <div class="center" id="loading">
   <div>

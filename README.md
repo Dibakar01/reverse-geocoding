@@ -173,15 +173,52 @@ Results are cached in memory by coordinates rounded to 4 dp (~11 m), flushed to
 `cache.json` every 10 s and on shutdown. An unreadable or unwritable cache is
 logged and ignored, never fatal.
 
-## Use it from a page
+## Connect your app
+
+Click any point in the demo, open **`</> API`**, and it hands you working code for
+that exact coordinate — cURL, JavaScript, React, Node or Python. Change the host
+field and every snippet updates. The live response sits underneath, so what you
+copy is what you will get.
+
+<picture>
+  <img alt="The demo's API panel open beside the globe. A point near Kolkata is picked, and the panel shows a JavaScript fetch snippet for lat 22.58, lon 88.42 with a copy button, and below it the live JSON response: locality Salt Lake City, district North 24 Parganas, city Kolkata, state West Bengal, country India." src="assets/connect-light.png" width="100%">
+</picture>
+
+### Drop-in connectors
+
+[`connectors/`](connectors/) holds real clients, not snippets. Each one caches by
+rounded coordinate, times out rather than hanging, and validates the range before
+making a request.
+
+| File | For | Notes |
+|---|---|---|
+| [`browser.js`](connectors/browser.js) | Any web page | `reverseGeocode()` and `locateUser()`, abortable, typed `GeocodeError` |
+| [`react.js`](connectors/react.js) | React 16.8+ | `useReverseGeocode(lat, lon)` and `useMyCity()`, cancels superseded requests |
+| [`node.mjs`](connectors/node.mjs) | Node 18+ | adds `reverseAll()` for bulk enrichment with bounded concurrency |
+| [`client.py`](connectors/client.py) | Python 3.9+ | standard library only — no `requests` |
 
 ```js
-const res = await fetch(`https://your-host/reverse?lat=${lat}&lon=${lon}`);
-const { city, displayName } = await res.json();
+import { locateUser } from './connectors/browser.js';
+
+const place = await locateUser({ base: 'https://your-host' });
+document.querySelector('#city').textContent = place.city;
 ```
 
-`client.js` is a drop-in module and also exports `locateUser()`, which wraps
-`navigator.geolocation` and resolves straight to a place.
+```python
+from client import ReverseGeocoder
+
+geo = ReverseGeocoder("https://your-host")
+print(geo.reverse(22.5800, 88.4200)["city"])      # Kolkata
+```
+
+### OpenAPI
+
+[`openapi.yaml`](openapi.yaml) describes both endpoints, so Postman, Insomnia and
+client generators can import the API directly rather than being hand-wired.
+
+There is **no authentication and no rate limit** — the service answers from an
+in-process dataset and makes no outbound calls, so there is no key to manage and
+nothing to bill. Put a proxy in front if you expose it publicly.
 
 ## Deploy
 
@@ -205,6 +242,8 @@ scripts/assign-cities.mjs clubs every place to a parent city, at build time
 scripts/measure-accuracy.mjs  scores both rules over identical points
 scripts/build-figures.mjs generates the README figures from that measurement
 demo/globe.js             the globe — raw WebGL, no library
+connectors/               drop-in clients: browser, React, Node, Python
+openapi.yaml              machine-readable API description
 data/                     the extract, committed so the demo can fetch it
 ```
 

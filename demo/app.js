@@ -33,6 +33,48 @@ async function loadText(url, onProgress) {
 }
 
 let geo, globe;
+let picked = { lat: 12.9352, lon: 77.6245 };   // whatever the snippets describe
+
+// The snippets are the whole point of the panel: they must be correct for the
+// exact point on screen, so they are generated from it rather than hardcoded.
+const SNIPPETS = {
+  cURL: (b, la, lo) => `curl '${b}/reverse?lat=${la}&lon=${lo}'`,
+
+  JavaScript: (b, la, lo) => `const res = await fetch(
+  '${b}/reverse?lat=${la}&lon=${lo}'
+);
+const place = await res.json();
+
+console.log(place.city);          // ${geo ? geo.lookup(+la, +lo).city : ''}
+console.log(place.displayName);`,
+
+  React: (b, la, lo) => `import { useReverseGeocode } from './connectors/react.js';
+
+function Where() {
+  const { place, loading, error } = useReverseGeocode(
+    ${la}, ${lo}, { base: '${b}' }
+  );
+
+  if (loading) return <p>Locating…</p>;
+  if (error) return <p>{error.message}</p>;
+  return <p>You are in {place.city}</p>;
+}`,
+
+  Node: (b, la, lo) => `import { createClient } from './connectors/node.mjs';
+
+const geo = createClient({ base: '${b}' });
+const place = await geo.reverse(${la}, ${lo});
+
+// Enrich many rows without stampeding the service:
+const places = await geo.reverseAll(rows.map(r => [r.lat, r.lon]));`,
+
+  Python: (b, la, lo) => `from client import ReverseGeocoder
+
+geo = ReverseGeocoder("${b}")
+place = geo.reverse(${la}, ${lo})
+
+print(place["city"])              # ${geo ? geo.lookup(+la, +lo).city : ''}`,
+};
 
 function present(lat, lon, { spin = false } = {}) {
   const t0 = performance.now();
@@ -58,6 +100,22 @@ function present(lat, lon, { spin = false } = {}) {
     globe.setMarker(lat, lon);          // show where the answer came from
     if (spin) globe.spinTo(lat, lon);
   }
+
+  picked = { lat, lon };
+  renderSnippet();
+  $('resp').textContent = JSON.stringify(r, null, 2);
+}
+
+let activeTab = 'cURL';
+
+function syncTabs() {
+  for (const b of $('tabs').children) b.setAttribute('aria-selected', String(b.textContent === activeTab));
+}
+
+function renderSnippet() {
+  const base = ($('base').value || 'http://localhost:3000').replace(/\/+$/, '');
+  const la = picked.lat.toFixed(4), lo = picked.lon.toFixed(4);
+  $('snippet').textContent = SNIPPETS[activeTab](base, la, lo);
 }
 
 function fallbackMode(message) {
@@ -138,6 +196,39 @@ function fallbackMode(message) {
     );
   });
 
+  // --- integration panel -------------------------------------------------
+  const tabs = $('tabs');
+  for (const name of Object.keys(SNIPPETS)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = name;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(name === activeTab));
+    b.addEventListener('click', () => { activeTab = name; syncTabs(); renderSnippet(); });
+    tabs.append(b);
+  }
+  syncTabs();
+  renderSnippet();
+
+  $('base').addEventListener('input', renderSnippet);
+  const openApi = (on) => {
+    $('api').classList.toggle('on', on);
+    $('api').setAttribute('aria-hidden', String(!on));
+  };
+  $('apiBtn').addEventListener('click', () => openApi(!$('api').classList.contains('on')));
+  $('apiClose').addEventListener('click', () => openApi(false));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') openApi(false); });
+
+  $('copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('snippet').textContent);
+      $('copy').textContent = 'Copied';
+    } catch {
+      $('copy').textContent = 'Press Ctrl+C';   // clipboard blocked without https or permission
+    }
+    setTimeout(() => { $('copy').textContent = 'Copy'; }, 1400);
+  });
+
   // Exposed so the interface can be driven in tests.
-  window.__nishaan = { geo, globe, present };
+  window.__nishaan = { geo, globe, present, renderSnippet };
 })();
