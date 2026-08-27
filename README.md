@@ -275,12 +275,15 @@ Be honest with users about what this can and cannot tell them.
 
 ## The demo page
 
+**Live: https://dibakar01.github.io/reverse-geocoding/demo/**
+
 `demo/` is a static page that runs the geocoder **entirely in the browser** —
 it fetches the same extract, decompresses it with `DecompressionStream`, and
 calls the same `core.js` the server does. No server, no cold start, nothing sent
 anywhere. It exists so the service can be shown to people without hosting it.
 
-Open it locally with any static server from the repo root:
+It is served by GitHub Pages straight from `main`, so a push updates it. Open it
+locally with any static server from the repo root:
 
 ```sh
 python3 -m http.server 8099
