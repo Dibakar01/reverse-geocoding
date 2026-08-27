@@ -17,13 +17,40 @@ No Google, no API keys, no external calls, no dependencies.
 [![data GeoNames CC BY 4.0](https://img.shields.io/badge/data-GeoNames_CC_BY_4.0-7a6a68?style=flat-square)](https://www.geonames.org/)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-animated-dark.svg">
-  <img alt="Coordinates go in and the city they belong to comes out. Koramangala resolves to Bengaluru, Salt Lake City to Kolkata, Vashi to Navi Mumbai. 621,128 places, 0.7 ms per lookup, zero dependencies." src="assets/hero-animated-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/demo-dark.png">
+  <img alt="The demo: a globe drawn from all 621,128 places as points of light, so the continents are made of the data itself. India glows densest because it holds 558,000 of them. A ring marks the picked point near Mumbai and a panel reads: you are in Mumbai, Khar, Mumbai Suburban district, Maharashtra, India, resolved in 2 ms." src="assets/demo-light.png" width="100%">
 </picture>
+
+<sub><b>Spin it. Click anywhere. That is the whole interface.</b><br>
+The continents are not a texture — every dot is one of the 621,128 places in the dataset.</sub>
 
 **[Try it live →](https://dibakar01.github.io/reverse-geocoding/demo/)**
 
 </div>
+
+## The demo
+
+**[dibakar01.github.io/reverse-geocoding/demo](https://dibakar01.github.io/reverse-geocoding/demo/)**
+
+One page, no scrolling. Drag to spin, click anywhere on Earth, read your city. It
+runs **entirely in your browser** — the extract is fetched once, decompressed with
+`DecompressionStream`, and every lookup after that happens on your device.
+Nothing is sent anywhere.
+
+The globe *is* the dataset. All 621,128 coordinates go to the GPU as a point
+buffer and are drawn on a sphere, so the coastlines emerge from the data rather
+than from an image — which is why India glows brightest, holding 558,000 of them.
+It is **raw WebGL with hand-written matrix maths**: no Three.js, no library, so
+the zero-dependency rule holds in the demo too. Browsers without WebGL get
+coordinate entry rather than a blank page.
+
+Picking inverts drawing exactly — screen to ray, ray to sphere, then the same
+rotation undone by transposing it. Round-tripping four cities through `spinTo`
+and picking the canvas centre returns the original coordinates to two decimals.
+
+**Nishaan**, the mascot, blinks while idle and bounces when an answer lands. Both
+stop under `prefers-reduced-motion`. Expect ~240 MB of tab memory while the index
+is held: comfortable on a laptop, heavy on an old phone.
 
 ## Run it
 
@@ -56,6 +83,11 @@ the whole problem this solves.
 
 Not "what is nearest". Nearest gives you *Dam Dam* for Salt Lake and *Dharavi*
 for Bandra. Belonging is a question about **orbit** — whose pull are you in?
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-animated-dark.svg">
+  <img alt="Coordinates go in and the city they belong to comes out. Koramangala resolves to Bengaluru, Salt Lake City to Kolkata, Vashi to Navi Mumbai. 621,128 places, 0.7 ms per lookup, zero dependencies." src="assets/hero-animated-light.svg" width="100%">
+</picture>
 
 ```
 score = population / distance²        ×1.6 if the city is in your own district
@@ -161,6 +193,20 @@ GeoNames is downloaded and trimmed in a build stage, so `curl` and `unzip` never
 reach the final image. Railway detects the `Dockerfile` with no further
 configuration; budget 512 MB. A `systemd` unit for a plain VPS is in
 [`CLAUDE.md`](CLAUDE.md).
+
+## Layout
+
+```
+core.js                   shared lookup — indexing and nearest-neighbour scan
+geocode.js                Node entry point: reads data/ from disk
+server.js                 HTTP endpoint, validation, caching
+test.js                   30 assertions, most of them city-clubbing cases
+scripts/assign-cities.mjs clubs every place to a parent city, at build time
+scripts/measure-accuracy.mjs  scores both rules over identical points
+scripts/build-figures.mjs generates the README figures from that measurement
+demo/globe.js             the globe — raw WebGL, no library
+data/                     the extract, committed so the demo can fetch it
+```
 
 ## Limits
 
