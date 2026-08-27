@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img"
+     aria-label="How places are clubbed: 124,057 by orbit, 465,069 by their district's largest city, and 32,002 with no parent city.">
+  <rect width="1200" height="300" rx="18" fill="#241b1a"/>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="17.5" fill="none" stroke="#332927"/>
+  <text x="64" y="52" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="15" fill="#9c8d8a" letter-spacing="2.5">HOW A PLACE FINDS ITS CITY</text>
+
+  <rect x="64"  y="78" width="214.1" height="26" rx="6" fill="#ff4b3a"/>
+  <rect x="278.1"  y="78" width="802.7" height="26" rx="6" fill="#8e3229"/>
+  <rect x="1080.8"  y="78" width="55.2" height="26" rx="6" fill="#4a3f3d"/>
+
+  <g font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+    <g transform="translate(64 148)">
+      <rect x="0" y="-24" width="10" height="10" rx="2" fill="#ff4b3a"/>
+      <text x="22" y="-15" font-size="19" font-weight="700" fill="#f4efee">Claimed by orbit</text>
+      <text x="0" y="20" font-size="34" font-weight="700" fill="#ff4b3a">124,057</text>
+      <text x="0" y="50" font-size="15" fill="#9c8d8a">a city in the same state whose</text>
+      <text x="0" y="72" font-size="15" fill="#9c8d8a">pull reaches it — 20.0%</text>
+    </g>
+    <g transform="translate(452 148)">
+      <rect x="0" y="-24" width="10" height="10" rx="2" fill="#8e3229"/>
+      <text x="22" y="-15" font-size="19" font-weight="700" fill="#f4efee">Falls back to its district</text>
+      <text x="0" y="20" font-size="34" font-weight="700" fill="#ff4b3a">465,069</text>
+      <text x="0" y="50" font-size="15" fill="#9c8d8a">no orbit reaches it, so the largest</text>
+      <text x="0" y="72" font-size="15" fill="#9c8d8a">city in its own district — 74.9%</text>
+    </g>
+    <g transform="translate(860 148)">
+      <rect x="0" y="-24" width="10" height="10" rx="2" fill="#4a3f3d"/>
+      <text x="22" y="-15" font-size="19" font-weight="700" fill="#f4efee">No parent city</text>
+      <text x="0" y="20" font-size="34" font-weight="700" fill="#9c8d8a">32,002</text>
+      <text x="0" y="50" font-size="15" fill="#9c8d8a">remote districts with no town over</text>
+      <text x="0" y="72" font-size="15" fill="#9c8d8a">20,000 — city repeats locality, 5.2%</text>
+    </g>
+  </g>
+</svg>
