@@ -1,402 +1,227 @@
-# Reverse Geocoding
+<div align="center">
 
-A self-hosted reverse geocoder for `artist.qalakaar.com` and `quest.qalakaar.com`.
-Give it a latitude and longitude, get back a human-readable place.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/mascot-dark.svg">
+  <img alt="" src="assets/mascot-light.svg" width="104">
+</picture>
+
+# Nishaan
+
+**Coordinates in, the city you actually belong to out.**<br>
+No Google, no API keys, no external calls, no dependencies.
+
+[![Data: GeoNames CC BY 4.0](https://img.shields.io/badge/data-GeoNames_CC_BY_4.0-d92819?style=flat-square)](https://www.geonames.org/)
+[![621,128 places](https://img.shields.io/badge/621,128-places_offline-d92819?style=flat-square)](#data)
+[![Dependencies: 0](https://img.shields.io/badge/dependencies-0-1a1211?style=flat-square)](package.json)
+[![Runs offline](https://img.shields.io/badge/runs-fully_offline-7a6a68?style=flat-square)](#why-offline)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img alt="A latitude and longitude go in. The point is matched to its nearest locality, Koramangala, then clubbed to the city it belongs to: Bengaluru. 621,128 places, 0.7 ms per lookup, zero dependencies." src="assets/hero-light.svg" width="100%">
+</picture>
+
+**[Try it live →](https://dibakar01.github.io/reverse-geocoding/demo/)**
+
+</div>
+
+## Run it
+
+```sh
+npm run build-data   # once: downloads ~21 MB from GeoNames, builds data/
+npm start            # :3000
+npm test             # 30 assertions
+```
+
+```sh
+curl 'localhost:3000/reverse?lat=22.5800&lon=88.4200'
+```
+
+```json
+{
+  "locality": "Salt Lake City",
+  "district": "North 24 Parganas",
+  "city": "Kolkata",
+  "state": "West Bengal",
+  "country": "India",
+  "displayName": "Salt Lake City, Kolkata, West Bengal, India"
+}
+```
+
+Salt Lake is administratively in **North 24 Parganas**, not Kolkata district. It
+is still Kolkata. That gap between the administrative answer and the true one is
+the whole problem this solves.
+
+## Which city do I belong to?
+
+Not "what is nearest". Nearest gives you *Dam Dam* for Salt Lake and *Dharavi*
+for Bandra. Belonging is a question about **orbit** — whose pull are you in?
 
 ```
-GET /reverse?lat=22.5800&lon=88.4200
-→ {"locality":"Salt Lake City","district":"North 24 Parganas","city":"Kolkata",
-   "state":"West Bengal","country":"India",
-   "displayName":"Salt Lake City, Kolkata, West Bengal, India"}
+score = population / distance²        ×1.6 if the city is in your own district
 ```
 
-No Google APIs, no keys, no external calls at runtime, no npm dependencies.
+<table>
+<tr><td width="50%" valign="top">
 
-## Why this approach
+**Never across a state line**
 
-Three options were on the table. This is the first one.
+Delhi's 11 M outweighs Noida's 294 k from 20 km away. But Noida is in Uttar
+Pradesh and is its own city. The state constraint is what keeps Noida, Gurugram
+and Faridabad off Delhi's books.
 
-**Offline lookup (chosen).** The service loads a trimmed GeoNames extract into
-memory at boot and answers from RAM. Nothing leaves the box, so there is no rate
-limit to respect, no third-party outage to absorb, no per-call cost, and no
-usage policy to violate. A lookup takes about 0.7 ms.
+</td><td width="50%" valign="top">
 
-**Nominatim / a free hosted API (rejected).** OpenStreetMap's public Nominatim
-is capped at 1 request per second and its usage policy forbids relying on it for
-a production application. Two consumer websites behind a single shared 1 req/sec
-bucket is a queue, and a dependency that can throttle or disappear.
+**Districts weigh, they don't rule**
 
-**Photon or Pelias (rejected).** Both mean running Elasticsearch and importing a
-multi-gigabyte OSM extract, for street-level precision this use case never asked
-for. It would cost more to operate than the problem is worth.
+Obey districts strictly and Salt Lake leaves Kolkata. Ignore them and Noida
+joins Delhi. As a 1.6× weight, both come out right — administrative containment
+is evidence, not proof.
 
-No npm reverse-geocoding package is used either. `local-reverse-geocoder` and
-friends download the same GeoNames data and add a k-d tree dependency; the whole
-lookup is 40 lines and a linear scan is already sub-millisecond.
+</td></tr>
+<tr><td valign="top">
+
+**Size alone can't spot a suburb**
+
+Ambattur is 10.04× smaller than Chennai and is one of its zones. Kalyan is
+10.05× smaller than Mumbai and is its own city. Identical ratios, opposite
+answers.
+
+</td><td valign="top">
+
+**So distance decides it**
+
+Ambattur sits 13 km inside Chennai's ~12 km footprint. Kalyan sits 42 km outside
+Mumbai's ~20 km one. Absorption needs **both** — 8× larger *and* close enough to
+actually contain you.
+
+</td></tr>
+</table>
+
+### How a place finds its city
+
+```mermaid
+flowchart TD
+    P[a place] --> S{a city in the same state<br/>whose orbit reaches it?}
+    S -->|yes| O[["clubbed by orbit<br/>124,057 places"]]
+    S -->|no| D{does its district<br/>have a city?}
+    D -->|yes| F[["clubbed to the district's<br/>largest city · 465,069"]]
+    D -->|no| N[["city = locality<br/>32,002 · mostly remote"]]
+```
+
+Computed **once, at build time**, and stored as a row index. So the mapping is
+fixed and inspectable, the same locality always resolves to the same city, and
+the runtime lookup is a plain nearest-neighbour scan with no scoring in it.
+
+## Accuracy
+
+An independent audit of 37 well-known localities found the first version unfit
+to ship — Delhi resolved correctly for under half its own area. Share of points
+within ~10 km of each centre that resolve to that metro:
+
+| Metro | Before | Now |  | Metro | Before | Now |
+|---|---:|---:|---|---|---:|---:|
+| Delhi | 48% | **99%** |  | Hyderabad | 86% | **99%** |
+| Chennai | 77% | **100%** |  | Pune | 73% | **91%** |
+| Mumbai | 83% | **100%** |  | Kolkata | 69% | **86%** |
+| Ahmedabad | 93% | **100%** |  | Kochi | 7% | **86%** |
+
+Three separate causes, each needing its own fix:
+
+- **Suburbs claimed themselves.** A city wins itself at distance zero, so every
+  suburb over 20 k became a "city" — Borivli instead of Mumbai, Bopal instead of
+  Ahmedabad. Fixed by the ratio-plus-footprint rule above.
+- **`PPLX` was excluded outright.** It stopped Dharavi beating Mumbai, but
+  GeoNames files **Navi Mumbai**, a planned city of 2.6 M, under the same code.
+  Dominance separates them properly, so the exclusion is gone.
+- **Taluks masquerading as towns.** GeoNames lists *Kanayannur* at 851,406 —
+  larger than Kochi's 633,553 — because that is the taluk's population. Such
+  records are barred, detected by an exact population match against a same-named
+  `ADM2`/`ADM3` unit, never a hand-written list. Administrative seats are exempt:
+  Kolkata and Chennai are coterminous with the units they head, and barring them
+  dropped both to 0%.
+
+## Why offline
+
+| | Nishaan | Nominatim | Photon / Pelias |
+|---|---|---|---|
+| Cost | free | free | server bill |
+| Rate limit | none | 1 req/sec | none |
+| Runtime calls | **none** | every lookup | local |
+| Setup | `npm run build-data` | none | Elasticsearch + multi-GB import |
+
+A 1 req/sec cap shared by two production sites is a queue and a dependency that
+can throttle or vanish. Photon and Pelias mean running Elasticsearch for
+street-level precision this never needed.
 
 ## Data
 
 | Source | Rows | Why |
-|---|---|---|
-| GeoNames `IN.zip`, feature class P | 557,995 | Every populated place in India, down to neighbourhoods |
-| GeoNames `cities5000.zip`, minus India | 63,133 | Rest of the world, population ≥ 5,000 |
+|---|---:|---|
+| GeoNames `IN.zip`, class P | 557,995 | every populated place in India, down to neighbourhoods |
+| GeoNames `cities5000`, minus India | 63,133 | rest of the world, population ≥ 5,000 |
 
-**621,128 places, 7.5 MB gzipped on disk.**
-
-India deliberately uses the full country gazetteer rather than `cities1000`.
-`cities1000` holds only 7,068 Indian places — barely more than `cities5000`'s
-6,531 — and none of the neighbourhoods. The country dump has Bandra, Andheri
-East, Bandra Kurla Complex and Koramangala, which is the difference between
-"Mumbai" and "Koramangala, Bengaluru" in the `locality` field.
-
-## Running locally
-
-Requires Node 20+ and `curl`, `unzip`, `awk`, `gzip` for the one-time data build.
-
-```sh
-npm run build-data   # downloads ~21 MB from GeoNames, writes data/ (once)
-npm start            # listens on :3000
-npm test             # 7 assertions over known coordinates
-```
-
-```sh
-curl 'localhost:3000/reverse?lat=19.0760&lon=72.8777'
-curl localhost:3000/health
-```
-
-Re-run `npm run build-data` every few months to pick up GeoNames updates.
-Nothing else needs to change.
+**621,128 places, 8.2 MB gzipped.** India uses the full country gazetteer rather
+than `cities1000`, which holds only 7,068 Indian places and no neighbourhoods —
+the difference between "Bengaluru" and "Koramangala, Bengaluru".
 
 ## API
 
-### `GET /reverse?lat=<-90..90>&lon=<-180..180>`
+**`GET /reverse?lat=<-90..90>&lon=<-180..180>`** → the JSON above. `400` on a bad
+coordinate, `404` on an unknown path, `Access-Control-Allow-Origin: *`.
 
-```json
-{
-  "locality": "Koramangala",
-  "district": "Bangalore Urban",
-  "city": "Bengaluru",
-  "state": "Karnataka",
-  "country": "India",
-  "displayName": "Koramangala, Bengaluru, Karnataka, India"
-}
-```
+**`GET /health`** → `{ "ok": true, "places": 621128, "cached": 42 }`
 
-`district` is the administrative district (GeoNames `admin2`). It is deliberately
-left out of `displayName`, where it is noise and often just repeats the city.
+Results are cached in memory by coordinates rounded to 4 dp (~11 m), flushed to
+`cache.json` every 10 s and on shutdown. An unreadable or unwritable cache is
+logged and ignored, never fatal.
 
-`displayName` is the non-empty fields joined by `, ` with duplicates removed, so
-a point in central Mumbai reads `Mumbai, Maharashtra, India`, not
-`Mumbai, Mumbai, Maharashtra, India`.
-
-Spot-checked against real Indian coordinates:
-
-```
-Colaba, Mumbai        -> Colaba, Mumbai, Maharashtra, India
-Andheri East, Mumbai  -> Andheri East, Mumbai, Maharashtra, India
-Koramangala, Blr      -> Koramangala, Bengaluru, Karnataka, India
-Connaught Place       -> Connaught Place, New Delhi, Delhi, India
-T Nagar, Chennai      -> Thyagaraya Nagar, Chennai, Tamil Nadu, India
-Banjara Hills, Hyd    -> Banjara Hills, Hyderabad, Telangana, India
-```
-
-`400` on a missing or out-of-range coordinate, `404` on an unknown path.
-`Access-Control-Allow-Origin: *` is set so browsers can call it directly, and
-responses carry `Cache-Control: public, max-age=86400`.
-
-### `GET /health`
-
-```json
-{ "ok": true, "places": 621128, "cached": 42 }
-```
-
-## How places are clubbed to a city
-
-"Which city do I belong to" is a question about **orbit**, not proximity. Every
-place is assigned to the strongest city whose pull reaches it:
-
-```
-score = population / distance²        ×1.6 when the city is in the place's own district
-```
-
-with two constraints: a candidate is **never considered across a state line**, and
-a city's reach scales with its size, `clamp(0.02·√population, 5 km, 60 km)`.
-
-Two simpler rules were tried and rejected by the data:
-
-- **Districts alone.** Salt Lake sits in North 24 Parganas, Kolkata in Kolkata
-  district — administratively separate, plainly the same city. Mumbai is split
-  across two districts. Districts cannot be obeyed strictly.
-- **Gravity alone.** Delhi's 11 M at 20 km outscores Noida's 294 k at 8.5 km.
-  Correct physics, wrong answer — Noida is a different state and its own city.
-
-So administrative containment is treated as **evidence, not proof**: a weight,
-not a rule. That is the only formulation found that resolves Noida correctly
-*while* keeping Salt Lake in Kolkata. The state constraint is what stops Delhi
-swallowing Noida, Gurugram and Faridabad.
-
-A seed always wins itself at distance zero, so without a further pass every
-suburb over the threshold becomes its own "city" — Borivli instead of Mumbai,
-Bopal instead of Ahmedabad. Neither feature codes nor districts separate those
-from genuine satellite cities: Thane and Borivli are both plain `PPL`, and
-Mumbai and Delhi carry no `admin2` at all. **Dominance** does: a neighbour
-15x larger and close enough to reach you owns you. Thane is only ~7x smaller
-than Mumbai and stays its own city; Borivli is ~21x smaller and does not.
-3,204 places are demoted this way.
-
-Anything the orbit rule cannot claim falls back to the largest city in its own
-district — a plain administrative fact. Coverage:
-
-| | |
-|---|---|
-| City seeds, after demotion | 22,431 (3,204 demoted as suburbs) |
-| Claimed by orbit | 123,917 (20.0%) |
-| Claimed by district fallback | 464,429 (74.8%) |
-| No parent city | 32,782 (5.3%) |
-
-Measured against 31 well-known localities across nine metros, **29 resolve to the
-city a resident would name**. The two that do not are both GeoNames data
-artifacts rather than rule failures, and are documented under accuracy limits.
-
-The mapping is computed **once, at build time**, by `scripts/assign-cities.mjs`,
-and stored as a row index in the extract. So it is fixed and inspectable — the
-same locality always resolves to the same city — and the runtime lookup is a
-plain nearest-neighbour scan with no scoring in it at all.
-
-## Caching
-
-Results are cached in memory, keyed by coordinates rounded to 4 decimal places
-(~11 m — finer than city-level data can justify). The map is flushed to
-`cache.json` every 10 seconds and on `SIGINT`/`SIGTERM`, and reloaded at boot, so
-a restart keeps its hit rate. Set `CACHE_FILE` to move it. The cache is only ever
-a cache: an unreadable or unwritable file is logged and ignored rather than
-crashing the service.
-
-At 100,000 entries the cache clears wholesale rather than evicting an LRU. That
-is deliberate — with a 0.7 ms miss, a periodic cold start is cheaper than the
-bookkeeping.
-
-## Using it from the two websites
-
-`client.js` is a drop-in ES module. Point `GEOCODER` at your deployment:
+## Use it from a page
 
 ```js
-const GEOCODER = 'https://geocode.qalakaar.com';
-
-export async function reverseGeocode(lat, lon, { signal } = {}) {
-  const url = `${GEOCODER}/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`Reverse geocode failed: ${res.status}`);
-  return res.json();
-}
+const res = await fetch(`https://your-host/reverse?lat=${lat}&lon=${lon}`);
+const { city, displayName } = await res.json();
 ```
 
-The common case, turning the browser's own position into something readable:
+`client.js` is a drop-in module and also exports `locateUser()`, which wraps
+`navigator.geolocation` and resolves straight to a place.
 
-```js
-import { reverseGeocode } from './client.js';
-
-navigator.geolocation.getCurrentPosition(async (pos) => {
-  const place = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-  document.querySelector('#location').textContent = place.displayName;
-});
-```
-
-`client.js` also exports `locateUser()`, which wraps both steps and rejects if
-the browser denies permission.
-
-CORS is open to `*`. The endpoint is read-only and costs nothing per call, so
-this is deliberate. To lock it to your own origins, replace the wildcard in
-`send()` in `server.js` with a check against an allow-list.
-
-## Deploying
-
-### Docker
+## Deploy
 
 ```sh
-docker build -t reverse-geocoding .
-docker run -p 3000:3000 reverse-geocoding
+docker build -t nishaan . && docker run -p 3000:3000 nishaan
 ```
 
-The GeoNames download and extract happen in a build stage, so `curl` and `unzip`
-never reach the final image and the container starts with its data already
-baked in. The container writes its cache to `/tmp/cache.json`, which does not
-survive a restart; mount a volume and set `CACHE_FILE` to keep it.
+GeoNames is downloaded and trimmed in a build stage, so `curl` and `unzip` never
+reach the final image. Railway detects the `Dockerfile` with no further
+configuration; budget 512 MB. A `systemd` unit for a plain VPS is in
+[`CLAUDE.md`](CLAUDE.md).
 
-> Not yet verified — Docker was not installed on the machine this was built on.
-> The build script it runs was tested standalone against the same file set the
-> stage copies.
+## Limits
 
-### Railway
-
-Railway detects the `Dockerfile` and needs no further configuration.
-
-```sh
-railway init
-railway up
-railway domain
-```
-
-`PORT` is injected by Railway and read automatically. Budget at least 512 MB of
-RAM: the process settles around 290 MB resident (see below). Add a volume
-mounted at `/data` with `CACHE_FILE=/data/cache.json` if you want the disk cache
-to survive deploys — it is a pure optimisation, not a requirement.
-
-### VPS with systemd
-
-```sh
-git clone <repo> /opt/reverse-geocoding && cd /opt/reverse-geocoding
-npm run build-data
-```
-
-```ini
-# /etc/systemd/system/reverse-geocoding.service
-[Service]
-WorkingDirectory=/opt/reverse-geocoding
-ExecStart=/usr/bin/node server.js
-Environment=PORT=3000
-Restart=always
-User=www-data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```sh
-systemctl enable --now reverse-geocoding
-```
-
-Put nginx or Caddy in front for TLS. The process is single-threaded; one
-instance handles far more than these two sites will produce, but `PORT`-shifted
-replicas behind the proxy scale it if that ever changes.
+- **City-level, not street-level.** No house numbers, roads or postcodes.
+- **Nearest place, not point-in-polygon.** Near a border the state can be wrong.
+- **Coverage outside India is coarse** — population ≥ 5,000 only.
+- **~5% of places have no parent city**, mostly remote districts with no town
+  over 20,000. There `city` repeats `locality` rather than inventing one.
+- **Populations are GeoNames' own and often stale**, and they drive the
+  clustering. Noida is listed at 294 k against a real figure several times that.
 
 ## Attribution
 
-This service uses data from [GeoNames](https://www.geonames.org/), licensed
-under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). **Attribution is
-a licence condition, not a courtesy.** Both websites must carry a visible credit
-wherever geocoded results are shown — a footer line is enough:
+Data from [GeoNames](https://www.geonames.org/), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). **Attribution is a
+licence condition.** Any site showing these results needs a visible credit:
 
 ```html
 Location data © <a href="https://www.geonames.org/">GeoNames</a>,
 licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
 ```
 
-GeoNames provides the data "as is" without warranty of accuracy, timeliness or
-completeness.
+No OpenStreetMap data is used, so no ODbL obligation and no Nominatim usage
+policy applies.
 
-No OpenStreetMap data is used, so no OSM/ODbL attribution applies and there is no
-Nominatim usage policy in play — no rate limit, no `User-Agent` requirement. If
-you ever add a hosted API as a fallback, both obligations return.
-
-## Known accuracy limits
-
-Be honest with users about what this can and cannot tell them.
-
-- **City-level, not street-level.** There are no house numbers, roads, postcodes
-  or building names, and there is no way to add them without approach 3.
-- **Nearest place, not point-in-polygon.** The answer is the closest gazetteer
-  entry, not the region the point provably falls inside. Within a few kilometres
-  of a state or national border the `state` and `country` can be wrong, because
-  the nearest town may sit on the other side of the line.
-- **Coverage outside India is coarse.** The rest of the world only carries places
-  above 5,000 population, so a point in rural Nebraska or the Australian outback
-  may resolve to a town tens of kilometres away, reported without any hint of the
-  distance.
-- **Two known mis-assignments, both from upstream data.** *Fort Kochi* resolves
-  to Kanayannur, because GeoNames lists Kanayannur — a taluk, not a city — at
-  851,406 against Kochi's 633,553, so no dominance rule can demote the larger
-  record. *Dwarka* (Delhi) resolves to Najafgarh, which is 8.08x smaller than
-  Delhi; the dominance threshold cannot be lowered to catch it without also
-  absorbing Kalyan-Dombivli, a genuine separate corporation at 10.05x. There is
-  no threshold that fixes one without breaking the other.
-- **`city` is a computed membership, not a boundary lookup.** See "How places are
-  clubbed" above. It is right on the cases that matter — Salt Lake to Kolkata,
-  Noida staying Noida — but it is inferred from population and distance, not from
-  municipal boundaries, which GeoNames does not publish. Roughly 5% of places have
-  no parent city at all; for those, `city` repeats `locality` rather than
-  inventing one.
-- **Points at sea return the nearest land.** There is no "no result" for open
-  ocean, and no distance is reported, so a point 400 km offshore looks the same
-  as one downtown. Validate coordinates upstream if that matters.
-- **Names are ASCII.** GeoNames' `asciiname` is used, so `Aligarh`, not
-  `Alīgarh`. Half of all Indian place names carry diacritics and the plain
-  spellings are the ones readers expect.
-- **Populations are stale.** GeoNames figures come from assorted censuses of
-  varying age, which shifts the `city` threshold in fast-growing towns.
-- **Individual GeoNames records are occasionally wrong, and `locality` wears
-  it.** India's gazetteer was bulk-imported, and a few entries are roads
-  (`Nrupathunga Rd`), landmarks (`Badami House`) or simply misplaced — one
-  record for `Dobbespet`, a town 40 km away, sits in the middle of Bengaluru. In
-  a dense city centre the nearest record is sometimes one of these. There is no
-  field that separates them: `Koramangala` and `Nrupathunga Rd` are byte-for-byte
-  the same shape — feature code `PPL`, population `0`, same import date. Filtering
-  by name was measured and rejected: it caught 81 records out of 557,995 and 7 of
-  those were real towns (`Abu Road`, `Marwar Junction`, `Dehu Road`). `city`,
-  `state` and `country` are unaffected, because those come from the 7,134 entries
-  that carry a real population. Treat `locality` as a helpful hint and
-  `displayName` as the safe thing to show.
-- **The extract is a snapshot.** New places appear only when you re-run
-  `npm run build-data`.
-
-## The demo page
-
-**Live: https://dibakar01.github.io/reverse-geocoding/demo/**
-
-`demo/` is a static page that runs the geocoder **entirely in the browser** —
-it fetches the same extract, decompresses it with `DecompressionStream`, and
-calls the same `core.js` the server does. No server, no cold start, nothing sent
-anywhere. It exists so the service can be shown to people without hosting it.
-
-It is served by GitHub Pages straight from `main`, so a push updates it. Open it
-locally with any static server from the repo root:
-
-```sh
-python3 -m http.server 8099
-# then http://127.0.0.1:8099/demo/
-```
-
-It downloads ~8.2 MB once, indexes in ~250 ms, and each lookup runs in a few
-milliseconds. Expect roughly 240 MB of tab memory while it holds the index, so
-it is comfortable on a laptop and heavy on an older phone.
-
-Mascot: **Nishaan** (`demo/mascot.svg`), Hindi/Urdu for *landmark*. Brand red
-`#d92819` on white, with a `favicon.svg` variant that stays legible at 16 px.
-
-## Layout
-
-```
-core.js                  shared lookup — indexing and nearest-neighbour scan
-geocode.js               Node entry point: reads data/ from disk, calls core
-server.js                HTTP endpoint, validation, caching
-client.js                browser client for the two websites
-test.js                  18 assertions, most of them city-clubbing cases
-scripts/build-data.sh    downloads and trims the GeoNames extract
-scripts/assign-cities.mjs clubs every place to a parent city, at build time
-data/                    the extract, committed so the static demo can fetch it
-demo/                    static browser demo (index.html, app.js, mascot.svg)
-```
-
-About 370 lines for the service, excluding data and the demo page. That is past
-the original ~300-line budget; city clubbing is scope that arrived after the
-budget was set, and `scripts/assign-cities.mjs` is 75 lines of it.
-
-`core.js` is deliberately free of `node:` imports so that the server and the
-browser demo share one implementation instead of two that drift.
-
-## Resource use
-
-Measured on macOS with Node 24, after loading all 621,128 places:
-
-| | |
-|---|---|
-| Cold start | ~0.4 s |
-| Lookup (cache miss) | ~0.7 ms |
-| Lookup (cache hit) | in-memory map read |
-| Live data | ~40 MB |
-| Resident (RSS) | ~240 MB |
-
-RSS runs well above live data because V8 does not return the pages it touched
-while indexing. It does not grow with traffic, and capping the heap
-(`--max-old-space-size=96`) still serves correctly, so 512 MB is a safe
-allocation. These figures are from macOS; container numbers were not measured.
+<div align="center">
+<br>
+<sub>Changing how places are clubbed? Add the locality to <code>test.js</code> first —<br>
+every rule here exists because a real place was assigned to the wrong city.</sub>
+</div>
