@@ -101,11 +101,11 @@ actually contain you.
 
 ```mermaid
 flowchart TD
-    P[a place] --> S{a city in the same state<br/>whose orbit reaches it?}
+    P["a place"] --> S{"a city in the same state<br/>whose orbit reaches it?"}
     S -->|yes| O[["clubbed by orbit<br/>124,057 places"]]
-    S -->|no| D{does its district<br/>have a city?}
-    D -->|yes| F[["clubbed to the district's<br/>largest city · 465,069"]]
-    D -->|no| N[["city = locality<br/>32,002 · mostly remote"]]
+    S -->|no| D{"does its district<br/>have a city?"}
+    D -->|yes| F[["clubbed to the district's<br/>largest city — 465,069"]]
+    D -->|no| N[["city = locality<br/>32,002, mostly remote"]]
 ```
 
 Computed **once, at build time**, and stored as a row index. So the mapping is
