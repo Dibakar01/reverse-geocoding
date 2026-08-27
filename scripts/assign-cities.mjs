@@ -18,6 +18,7 @@ const MIN_CITY_POP = 20_000;   // below this a place is not somewhere you "belon
 const MIN_REACH_KM = 5;
 const MAX_REACH_KM = 60;
 const SAME_DISTRICT_BONUS = 1.6;
+const DOMINANCE = 15;          // a neighbour this many times larger owns you
 const CELL = 1;                // degrees; > max reach, so neighbours suffice
 
 const lines = readFileSync(process.argv[2], 'utf8').split('\n');
@@ -31,19 +32,6 @@ for (const line of lines) {
 // A city's pull reaches further the bigger it is, but never unboundedly.
 const reach = (pop) => Math.min(MAX_REACH_KM, Math.max(MIN_REACH_KM, 0.02 * Math.sqrt(pop)));
 
-// Bucket the city seeds so each place only compares against nearby ones.
-const grid = new Map();
-const key = (la, lo) => `${Math.floor(la / CELL)}:${Math.floor(lo / CELL)}`;
-let seeds = 0;
-for (let i = 0; i < P.length; i++) {
-  const p = P[i];
-  if (p.pop < MIN_CITY_POP || p.fc === 'PPLX') continue;
-  const k = key(p.lat, p.lon);
-  if (!grid.has(k)) grid.set(k, []);
-  grid.get(k).push(i);
-  seeds++;
-}
-
 const distKm = (a, blat, blon) => {
   const k = Math.cos((a.lat * Math.PI) / 180);
   let dx = blon - a.lon;
@@ -51,11 +39,60 @@ const distKm = (a, blat, blon) => {
   return Math.hypot(blat - a.lat, dx * k) * 111;
 };
 
-// Largest city seed per district, for the fallback tier.
-const districtCity = new Map();
+const key = (la, lo) => `${Math.floor(la / CELL)}:${Math.floor(lo / CELL)}`;
+const bucket = (idx) => {
+  const g = new Map();
+  for (const i of idx) {
+    const k = key(P[i].lat, P[i].lon);
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push(i);
+  }
+  return g;
+};
+const near = (g, p) => {
+  const out = [];
+  const gy = Math.floor(p.lat / CELL), gx = Math.floor(p.lon / CELL);
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) out.push(...(g.get(`${gy + dy}:${gx + dx}`) ?? []));
+  return out;
+};
+
+let candidates = [];
 for (let i = 0; i < P.length; i++) {
   const p = P[i];
-  if (p.pop < MIN_CITY_POP || p.fc === 'PPLX' || !p.a2) continue;
+  if (p.pop >= MIN_CITY_POP && p.fc !== 'PPLX') candidates.push(i);
+}
+
+// A seed always wins itself at distance zero, so without this pass every suburb
+// over the threshold becomes its own "city" — Borivli instead of Mumbai, Bopal
+// instead of Ahmedabad. Feature codes cannot tell them apart (Thane and Borivli
+// are both plain PPL), and neither can districts, because Mumbai and Delhi carry
+// no admin2 at all. What does separate them is dominance: a neighbour an order
+// of magnitude larger, close enough to reach you, owns you. Thane is only ~7x
+// smaller than Mumbai and stays its own city; Borivli is ~21x smaller and does not.
+const cgrid = bucket(candidates);
+const demoted = new Set();
+for (const i of candidates) {
+  const p = P[i];
+  for (const j of near(cgrid, p)) {
+    if (j === i) continue;
+    const b = P[j];
+    if (b.cc !== p.cc || b.a1 !== p.a1) continue;
+    if (b.pop < DOMINANCE * p.pop) continue;
+    if (distKm(p, b.lat, b.lon) > reach(b.pop)) continue;
+    demoted.add(i);
+    break;
+  }
+}
+candidates = candidates.filter((i) => !demoted.has(i));
+const grid = bucket(candidates);
+const seeds = candidates.length;
+
+// Largest city seed per district, for the fallback tier.
+const districtCity = new Map();
+for (const i of candidates) {
+  const p = P[i];
+  if (!p.a2) continue;
   const k = `${p.cc}.${p.a1}.${p.a2}`;
   const held = districtCity.get(k);
   if (held === undefined || P[held].pop < p.pop) districtCity.set(k, i);
@@ -90,7 +127,8 @@ for (const p of P) {
 
 const clubbed = byOrbit + byDistrict;
 process.stderr.write(
-  `  ${P.length.toLocaleString()} places, ${seeds.toLocaleString()} city seeds\n` +
+  `  ${P.length.toLocaleString()} places, ${seeds.toLocaleString()} city seeds ` +
+  `(${demoted.size.toLocaleString()} demoted as suburbs)\n` +
   `  clubbed ${clubbed.toLocaleString()} (${((clubbed / P.length) * 100).toFixed(1)}%): ` +
   `${byOrbit.toLocaleString()} by orbit, ${byDistrict.toLocaleString()} by district\n`);
 process.stdout.write(out.join('\n'));

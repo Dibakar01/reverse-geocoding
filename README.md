@@ -135,14 +135,28 @@ not a rule. That is the only formulation found that resolves Noida correctly
 *while* keeping Salt Lake in Kolkata. The state constraint is what stops Delhi
 swallowing Noida, Gurugram and Faridabad.
 
+A seed always wins itself at distance zero, so without a further pass every
+suburb over the threshold becomes its own "city" — Borivli instead of Mumbai,
+Bopal instead of Ahmedabad. Neither feature codes nor districts separate those
+from genuine satellite cities: Thane and Borivli are both plain `PPL`, and
+Mumbai and Delhi carry no `admin2` at all. **Dominance** does: a neighbour
+15x larger and close enough to reach you owns you. Thane is only ~7x smaller
+than Mumbai and stays its own city; Borivli is ~21x smaller and does not.
+3,204 places are demoted this way.
+
 Anything the orbit rule cannot claim falls back to the largest city in its own
 district — a plain administrative fact. Coverage:
 
 | | |
 |---|---|
-| Claimed by orbit | 124,139 (20.0%) |
-| Claimed by district fallback | 465,102 (74.9%) |
-| No parent city | 31,887 (5.1%) |
+| City seeds, after demotion | 22,431 (3,204 demoted as suburbs) |
+| Claimed by orbit | 123,917 (20.0%) |
+| Claimed by district fallback | 464,429 (74.8%) |
+| No parent city | 32,782 (5.3%) |
+
+Measured against 31 well-known localities across nine metros, **29 resolve to the
+city a resident would name**. The two that do not are both GeoNames data
+artifacts rather than rule failures, and are documented under accuracy limits.
 
 The mapping is computed **once, at build time**, by `scripts/assign-cities.mjs`,
 and stored as a row index in the extract. So it is fixed and inspectable — the
@@ -289,6 +303,13 @@ Be honest with users about what this can and cannot tell them.
   above 5,000 population, so a point in rural Nebraska or the Australian outback
   may resolve to a town tens of kilometres away, reported without any hint of the
   distance.
+- **Two known mis-assignments, both from upstream data.** *Fort Kochi* resolves
+  to Kanayannur, because GeoNames lists Kanayannur — a taluk, not a city — at
+  851,406 against Kochi's 633,553, so no dominance rule can demote the larger
+  record. *Dwarka* (Delhi) resolves to Najafgarh, which is 8.08x smaller than
+  Delhi; the dominance threshold cannot be lowered to catch it without also
+  absorbing Kalyan-Dombivli, a genuine separate corporation at 10.05x. There is
+  no threshold that fixes one without breaking the other.
 - **`city` is a computed membership, not a boundary lookup.** See "How places are
   clubbed" above. It is right on the cases that matter — Salt Lake to Kolkata,
   Noida staying Noida — but it is inferred from population and distance, not from
@@ -349,7 +370,7 @@ core.js                  shared lookup — indexing and nearest-neighbour scan
 geocode.js               Node entry point: reads data/ from disk, calls core
 server.js                HTTP endpoint, validation, caching
 client.js                browser client for the two websites
-test.js                  14 assertions, half of them city-clubbing cases
+test.js                  18 assertions, most of them city-clubbing cases
 scripts/build-data.sh    downloads and trims the GeoNames extract
 scripts/assign-cities.mjs clubs every place to a parent city, at build time
 data/                    the extract, committed so the static demo can fetch it

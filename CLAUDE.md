@@ -35,6 +35,10 @@ that is expected and intentional when refreshing GeoNames.
   (orbit: population/distance², ×1.6 same district, never across a state line;
   then a district fallback). `core.js` just reads the stored row index. Do not
   reintroduce scoring into the lookup.
+- **`DOMINANCE = 15` in `assign-cities.mjs` is tightly constrained. Do not tune
+  it casually.** Below ~10 it absorbs Kalyan-Dombivli into Mumbai (10.05x),
+  which is wrong; raising it lets suburbs like Borivli (21x) claim themselves.
+  There are tests pinning both sides.
 - **The district term is a weight, not a rule, and that is load-bearing.**
   Obeying districts strictly ejects Salt Lake from Kolkata; pure gravity lets
   Delhi swallow Noida. Only the weighted form gets both right. There are tests

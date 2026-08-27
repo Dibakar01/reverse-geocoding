@@ -32,6 +32,14 @@ const clubbing = [
   { name: 'Gurugram stays Gurugram, it is not Delhi',                   lat: 28.4595, lon: 77.0266, city: 'Gurugram' },
   { name: 'Thane stays Thane, it is not Mumbai',                        lat: 19.2183, lon: 72.9781, city: 'Thane' },
   { name: 'Banjara Hills clubs to Hyderabad',                           lat: 17.4126, lon: 78.4392, city: 'Hyderabad' },
+  // A suburb over the seed threshold used to claim itself, because a seed wins
+  // itself at distance zero. These are the cases the dominance pass fixed.
+  { name: 'Borivali is absorbed into Mumbai, not its own city',         lat: 19.2307, lon: 72.8567, city: 'Mumbai' },
+  { name: 'Electronic City is absorbed into Bengaluru',                 lat: 12.8452, lon: 77.6602, city: 'Bengaluru' },
+  { name: 'Bopal is absorbed into Ahmedabad',                           lat: 23.0355, lon: 72.4700, city: 'Ahmedabad' },
+  // ...but dominance must not over-absorb. Kalyan-Dombivli is 10x smaller than
+  // Mumbai and 42 km away, and is its own municipal corporation.
+  { name: 'Kalyan survives dominance and stays its own city',           lat: 19.2437, lon: 73.1355, city: 'Kalyan' },
 ];
 
 for (const c of clubbing) {
