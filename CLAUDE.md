@@ -35,10 +35,20 @@ that is expected and intentional when refreshing GeoNames.
   (orbit: population/distance², ×1.6 same district, never across a state line;
   then a district fallback). `core.js` just reads the stored row index. Do not
   reintroduce scoring into the lookup.
-- **`DOMINANCE = 15` in `assign-cities.mjs` is tightly constrained. Do not tune
-  it casually.** Below ~10 it absorbs Kalyan-Dombivli into Mumbai (10.05x),
-  which is wrong; raising it lets suburbs like Borivli (21x) claim themselves.
-  There are tests pinning both sides.
+- **Absorption needs BOTH size ratio and footprint distance.** Size alone cannot
+  work: Ambattur is 10.04x smaller than Chennai and is one of its zones, Kalyan
+  is 10.05x smaller than Mumbai and is its own city. `DOMINANCE = 8` plus
+  `FOOTPRINT = 1.5` x the parent's density-derived radius separates them. Tests
+  pin both sides.
+- **PPLX is deliberately NOT excluded from city seeds.** It used to be, to stop
+  Dharavi beating Mumbai — but GeoNames also files Navi Mumbai (2.6 M) as PPLX.
+  Dominance handles both correctly. Do not reintroduce the exclusion.
+- **The admin-unit bar must exempt administrative seats (`PPLA*`/`PPLC`).**
+  GeoNames files taluks like Kanayannur as places carrying the unit's population,
+  which outranks the real city. But Kolkata, Chennai and Gurugram are coterminous
+  with the units they head, so their populations match by definition — barring
+  them erased those cities entirely (measured: Kolkata and Chennai fell to 0%).
+  There are tests for both directions.
 - **The district term is a weight, not a rule, and that is load-bearing.**
   Obeying districts strictly ejects Salt Lake from Kolkata; pure gravity lets
   Delhi swallow Noida. Only the weighted form gets both right. There are tests

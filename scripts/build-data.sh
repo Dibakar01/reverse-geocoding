@@ -25,11 +25,17 @@ row='{n = ($3 != "" ? $3 : $2); print n"\t"$5"\t"$6"\t"$9"\t"$11"\t"$12"\t"$15"\
 { awk -F'\t' "\$7==\"P\" $row" IN.txt
   awk -F'\t' "\$9!=\"IN\" $row" cities5000.txt
 } > places.raw.tsv
+
+# Administrative units, to catch settlement records that carry a district or
+# taluk's population instead of the town's.
+awk -F'\t' '$7=="A" && ($8=="ADM2"||$8=="ADM3") && $15>0 {n=($3!=""?$3:$2); print n"\t"$15}' \
+  IN.txt > admin-units.tsv
 cp admin1CodesASCII.txt admin2Codes.txt countryInfo.txt ../data/
 
 # Club every place to a parent city, once, at build time.
 cd ..
-node scripts/assign-cities.mjs tmp-geonames/places.raw.tsv | gzip -9 > data/places.tsv.gz
+node scripts/assign-cities.mjs tmp-geonames/places.raw.tsv tmp-geonames/admin-units.tsv \
+  | gzip -9 > data/places.tsv.gz
 
 rm -rf tmp-geonames
 echo "Done: $(ls -lh data/places.tsv.gz | awk '{print $5}') in data/places.tsv.gz"

@@ -40,7 +40,47 @@ const clubbing = [
   // ...but dominance must not over-absorb. Kalyan-Dombivli is 10x smaller than
   // Mumbai and 42 km away, and is its own municipal corporation.
   { name: 'Kalyan survives dominance and stays its own city',           lat: 19.2437, lon: 73.1355, city: 'Kalyan' },
+  // Navi Mumbai is filed as PPLX, the same code as Dharavi. Excluding PPLX
+  // outright made a planned city of 2.6 M unrepresentable.
+  { name: 'Vashi belongs to Navi Mumbai, not Mumbai',                   lat: 19.0770, lon: 72.9986, city: 'Navi Mumbai' },
+  { name: 'Kharghar belongs to Navi Mumbai',                            lat: 19.0330, lon: 73.0630, city: 'Navi Mumbai' },
+  // Size ratio alone cannot separate these: Ambattur is 10.04x smaller than
+  // Chennai and is one of its zones, Kalyan is 10.05x smaller than Mumbai and
+  // is not. Distance against the parent's footprint is what decides it.
+  { name: 'Ambattur is a Chennai corporation zone',                     lat: 13.0983, lon: 80.1614, city: 'Chennai' },
+  { name: 'Dwarka belongs to Delhi, not Najafgarh',                     lat: 28.5921, lon: 77.0460, city: 'Delhi' },
+  { name: 'Behala belongs to Kolkata',                                  lat: 22.4989, lon: 88.3186, city: 'Kolkata' },
+  { name: 'Kukatpally belongs to Hyderabad',                            lat: 17.4849, lon: 78.4138, city: 'Hyderabad' },
+  // GeoNames files the taluk Kanayannur as a place of 851,406 — larger than
+  // Kochi — so it outranked the real city.
+  { name: 'Fort Kochi belongs to Kochi, not the Kanayannur taluk',      lat: 9.9658,  lon: 76.2421, city: 'Kochi' },
+  { name: 'Ernakulam belongs to Kochi',                                 lat: 9.9816,  lon: 76.2999, city: 'Kochi' },
+  // ...but barring admin-population records must exempt administrative seats.
+  // Kolkata and Chennai are coterminous with the units they head, so their
+  // populations match by definition; barring them erased both cities.
+  { name: 'Kolkata survives the admin-unit bar (it is a PPLA seat)',    lat: 22.5726, lon: 88.3639, city: 'Kolkata' },
+  { name: 'Chennai survives the admin-unit bar',                        lat: 13.0827, lon: 80.2707, city: 'Chennai' },
+  { name: 'Gurugram survives the admin-unit bar',                       lat: 28.4595, lon: 77.0266, city: 'Gurugram' },
 ];
+
+test('every cityIndex names a real root, with no chains', async () => {
+  // A root is assigned like any other place, so it can be claimed by another
+  // root. Without flattening, two rows in one city land in different groups.
+  const { readFileSync } = await import('node:fs');
+  const { gunzipSync } = await import('node:zlib');
+  const rows = gunzipSync(readFileSync(new URL('./data/places.tsv.gz', import.meta.url)))
+    .toString('utf8').split('\n').map((l) => l.split('\t'));
+  let notRoot = 0, outOfRange = 0;
+  for (const r of rows) {
+    if (r.length < 9) continue;
+    const ci = Number(r[8]);
+    if (ci < 0) continue;
+    if (!rows[ci] || rows[ci].length < 9) { outOfRange++; continue; }
+    if (Number(rows[ci][8]) !== ci) notRoot++;
+  }
+  assert.equal(outOfRange, 0, 'cityIndex out of range');
+  assert.equal(notRoot, 0, 'cityIndex pointing at a non-root');
+});
 
 for (const c of clubbing) {
   test(c.name, () => {
