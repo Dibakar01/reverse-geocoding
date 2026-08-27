@@ -133,4 +133,5 @@ function submit() {
     });
     chips.append(b);
   }
+  chips.hidden = false;
 })();

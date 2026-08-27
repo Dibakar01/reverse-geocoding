@@ -56,6 +56,7 @@
   button:hover { filter: brightness(.94); }
 
   .chips { margin-top: 22px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chips[hidden] { display: none; }
   .chips b { font-size: .78rem; text-transform: uppercase; letter-spacing: .07em;
              color: var(--muted); width: 100%; font-weight: 600; }
   .chip {
@@ -112,7 +113,7 @@
       <button class="primary" id="go">Look up</button>
       <button class="ghost" id="here">Use my location</button>
     </div>
-    <div class="chips" id="chips"><b>Try one</b></div>
+    <div class="chips" id="chips" hidden><b>Try one</b></div>
   </fieldset>
 
   <div class="result" id="result" hidden>
