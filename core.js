@@ -13,11 +13,13 @@ export function createGeocoder({ places, admin1, admin2, countries: countryText 
     if (code) states.set(code, name);
   }
 
-  // "IN.19.572" -> "Bengaluru Urban"
+  // "IN.19.572" -> "Bangalore Urban". Column 2 is the ASCII name; 110 of India's
+  // 763 districts carry diacritics in column 1, and we spell places in ASCII
+  // everywhere else.
   const districts = new Map();
   for (const line of (admin2 ?? '').split('\n')) {
-    const [code, name] = line.split('\t');
-    if (code) districts.set(code, name);
+    const [code, name, ascii] = line.split('\t');
+    if (code) districts.set(code, ascii || name);
   }
 
   // "IN" -> "India"
