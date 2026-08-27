@@ -6,7 +6,7 @@ export async function reverseGeocode(lat, lon, { signal } = {}) {
   const url = `${GEOCODER}/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Reverse geocode failed: ${res.status}`);
-  return res.json(); // { locality, city, state, country, displayName }
+  return res.json(); // { locality, district, city, state, country, displayName }
 }
 
 // Typical use: turn the browser's coordinates into something a human can read.

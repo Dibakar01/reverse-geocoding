@@ -3,11 +3,10 @@
 import { createGeocoder } from '../core.js';
 
 const $ = (id) => document.getElementById(id);
-const status = $('status'), bar = $('bar');
-
-const fail = (msg) => {
-  status.className = 'status err';
-  status.textContent = msg;
+const note = $('note');
+const say = (msg, isError = false) => {
+  note.textContent = msg;
+  note.className = isError ? 'note err' : 'note';
 };
 
 async function loadText(url, onProgress) {
@@ -43,62 +42,77 @@ async function loadText(url, onProgress) {
   return new TextDecoder().decode(bytes);
 }
 
+// India's gazetteer was bulk-imported and a handful of records are roads or
+// landmarks rather than places ("Nrupathunga Rd", "Badami House"). They sit at
+// city centres, so a nearest-first list surfaces them straight away. This hides
+// them from that list only — geocoding still resolves them, which is correct if
+// you are actually standing on one.
+const INFRASTRUCTURE = /\s(Rd|Road|Flyover|Bridge|Underpass|Subway|Circle|Junction|House)$/;
+
 const PRESETS = [
-  ['Mumbai', 19.0760, 72.8777],
-  ['Koramangala, Bengaluru', 12.9352, 77.6245],
-  ['Connaught Place, Delhi', 28.6315, 77.2167],
-  ['T Nagar, Chennai', 13.0418, 80.2341],
-  ['Banjara Hills, Hyderabad', 17.4126, 78.4392],
-  ['Salt Lake, Kolkata', 22.5800, 88.4200],
-  ['London', 51.5074, -0.1278],
-  ['New York', 40.7128, -74.0060],
+  ['Koramangala', 12.9352, 77.6245], ['Bandra', 19.0596, 72.8295],
+  ['Salt Lake', 22.5800, 88.4200], ['Noida', 28.5355, 77.3910],
+  ['Connaught Place', 28.6315, 77.2167], ['T Nagar', 13.0418, 80.2341],
+  ['Banjara Hills', 17.4126, 78.4392], ['London', 51.5074, -0.1278],
 ];
 
 let geo;
 
-function render(lat, lon) {
+function show(lat, lon) {
   const t0 = performance.now();
   const r = geo.lookup(lat, lon);
+  const cityIndex = geo.cityIndexAt(lat, lon);
   const ms = performance.now() - t0;
-  if (!r) return fail('No place found for those coordinates.');
+  if (!r) return say('No place found for those coordinates.', true);
 
-  $('display').textContent = r.displayName;
-  $('r-locality').textContent = r.locality;
-  $('r-city').textContent = r.city;
-  $('r-state').textContent = r.state || '—';
-  $('r-country').textContent = r.country || '—';
-  $('timing').textContent =
-    `${lat.toFixed(4)}, ${lon.toFixed(4)} · scanned ${geo.placeCount.toLocaleString()} places in ${ms.toFixed(1)} ms`;
-  $('result').hidden = false;
+  $('city').textContent = r.city;
+
+  // Only say the locality when it adds something the city has not already said.
+  const bits = [];
+  if (r.locality && r.locality !== r.city) bits.push(r.locality);
+  if (r.district && r.district !== r.city) bits.push(`<span>${r.district} district</span>`);
+  $('where').innerHTML = bits.join(' · ');
+  $('meta').textContent = [r.state, r.country].filter(Boolean).join(', ')
+    + ` · ${lat.toFixed(4)}, ${lon.toFixed(4)} · ${ms.toFixed(0)} ms`;
+
+  const also = $('also');
+  if (cityIndex >= 0) {
+    const members = geo.localitiesOf(cityIndex)
+      .filter((m) => m !== r.locality && !INFRASTRUCTURE.test(m));
+    if (members.length) {
+      const head = members.slice(0, 8).join(', ');
+      const rest = members.length - 8;
+      $('alsoList').innerHTML = rest > 0 ? `${head} <em>and ${rest.toLocaleString()} more</em>` : head;
+      also.hidden = false;
+    } else also.hidden = true;
+  } else also.hidden = true;
+
+  $('answer').hidden = false;
+  say(`${geo.placeCount.toLocaleString()} places loaded, all lookups run on your device.`);
 }
 
 function submit() {
   const lat = Number($('lat').value), lon = Number($('lon').value);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
-    return fail('Latitude must be between -90 and 90, longitude between -180 and 180.');
+    return say('Latitude must be between −90 and 90, longitude between −180 and 180.', true);
   }
-  status.className = 'status';
-  status.textContent = `Ready · ${geo.placeCount.toLocaleString()} places loaded.`;
-  render(lat, lon);
+  show(lat, lon);
 }
 
 (async () => {
   try {
-    const [places, admin1, countries] = await Promise.all([
-      loadText('../data/places.tsv.gz', (p) => { bar.style.width = `${Math.round(p * 100)}%`; }),
+    const [places, admin1, admin2, countries] = await Promise.all([
+      loadText('../data/places.tsv.gz', (p) => say(`Loading place data… ${Math.round(p * 100)}%`)),
       loadText('../data/admin1CodesASCII.txt'),
+      loadText('../data/admin2Codes.txt'),
       loadText('../data/countryInfo.txt'),
     ]);
-    status.textContent = 'Indexing places…';
-    bar.style.width = '100%';
-    // Yield once so the browser paints "Indexing" before the parse blocks it.
-    await new Promise((r) => setTimeout(r, 0));
-
-    geo = createGeocoder({ places, admin1, countries });
-    status.textContent = `Ready · ${geo.placeCount.toLocaleString()} places loaded.`;
-    $('form').disabled = false;
+    say('Indexing places…');
+    await new Promise((r) => setTimeout(r, 0)); // let that paint before we block
+    geo = createGeocoder({ places, admin1, admin2, countries });
+    say(`${geo.placeCount.toLocaleString()} places loaded, all lookups run on your device.`);
   } catch (err) {
-    return fail(`Could not load place data: ${err.message}`);
+    return say(`Could not load place data: ${err.message}`, true);
   }
 
   $('go').addEventListener('click', submit);
@@ -107,15 +121,15 @@ function submit() {
   }
 
   $('here').addEventListener('click', () => {
-    if (!navigator.geolocation) return fail('This browser has no geolocation support.');
-    status.textContent = 'Asking your browser for a position…';
+    if (!navigator.geolocation) return say('This browser has no geolocation support.', true);
+    say('Asking your browser for a position…');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         $('lat').value = pos.coords.latitude.toFixed(4);
         $('lon').value = pos.coords.longitude.toFixed(4);
         submit();
       },
-      (err) => fail(`Could not get your location: ${err.message}`),
+      (err) => say(`Could not get your location: ${err.message}`, true),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
     );
   });
@@ -124,7 +138,6 @@ function submit() {
   for (const [label, lat, lon] of PRESETS) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'chip';
     b.textContent = label;
     b.addEventListener('click', () => {
       $('lat').value = lat;

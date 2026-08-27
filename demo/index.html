@@ -3,138 +3,132 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nishaan — Reverse Geocoding</title>
+<title>Nishaan — which city am I in?</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
   :root {
-    --red: #d92819;
-    --white: #FFFFFF;
-    --ink: #1a1614;
-    --muted: #6f6560;
-    --line: #eadfdc;
-    --tint: #fdf3f2;
+    --red: #d92819; --white: #fff;
+    --ink: #17110f; --mute: #857a75; --hair: #ece4e2;
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; background: var(--white); color: var(--ink);
-    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px 64px; }
-  header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-  header img { width: 60px; height: auto; flex: none; }
-  h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.02em; }
-  h1 span { color: var(--red); }
-  .sub { color: var(--muted); margin: 0; font-size: .95rem; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 56px 24px 72px; }
 
-  .status {
-    margin: 28px 0; padding: 14px 16px; border-radius: 10px;
-    background: var(--tint); border: 1px solid var(--line); font-size: .9rem;
-  }
-  .status.err { background: #fff0ee; border-color: #f3bdb6; color: #8c1a10; }
-  .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 10px; }
-  .bar i { display: block; height: 100%; width: 0; background: var(--red); transition: width .2s; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+  header img { width: 34px; }
+  header b { font-size: 1.05rem; letter-spacing: -.01em; }
+  header b i { color: var(--red); font-style: normal; }
 
-  fieldset { border: 0; padding: 0; margin: 0; }
-  fieldset[disabled] { opacity: .45; pointer-events: none; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; }
-  label { display: block; font-size: .78rem; text-transform: uppercase;
-          letter-spacing: .07em; color: var(--muted); margin-bottom: 5px; }
-  .field { flex: 1 1 150px; }
-  input {
-    width: 100%; padding: 11px 12px; font: inherit; color: var(--ink);
-    border: 1px solid var(--line); border-radius: 9px; background: var(--white);
-  }
-  input:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: transparent; }
-  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-  button {
-    font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 9px;
-    border: 1px solid var(--red); cursor: pointer;
-  }
-  button.primary { background: var(--red); color: var(--white); }
-  button.ghost { background: var(--white); color: var(--red); }
-  button:hover { filter: brightness(.94); }
+  h1 { font-size: 1.45rem; line-height: 1.3; margin: 0 0 28px; letter-spacing: -.02em; font-weight: 650; }
 
-  .chips { margin-top: 22px; display: flex; gap: 8px; flex-wrap: wrap; }
+  /* Primary action: the thing most people want is one button. */
+  .locate {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+    font: inherit; font-weight: 600; padding: 15px; border-radius: 12px;
+    background: var(--red); color: var(--white); border: 0; cursor: pointer;
+  }
+  .locate:hover { filter: brightness(.93); }
+  .locate svg { width: 17px; height: 17px; }
+
+  .or { display: flex; align-items: center; gap: 12px; margin: 18px 0;
+        color: var(--mute); font-size: .8rem; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+
+  .coords { display: flex; gap: 8px; }
+  .coords input {
+    flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: var(--ink);
+    border: 1px solid var(--hair); border-radius: 10px; background: var(--white);
+  }
+  .coords input::placeholder { color: var(--mute); }
+  .coords input:focus { outline: 2px solid var(--red); outline-offset: -1px; border-color: transparent; }
+  .coords button {
+    flex: none; width: 46px; border: 1px solid var(--hair); background: var(--white);
+    border-radius: 10px; cursor: pointer; color: var(--red); font-size: 1.2rem; line-height: 1;
+  }
+  .coords button:hover { border-color: var(--red); }
+
+  .chips { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .87rem; }
   .chips[hidden] { display: none; }
-  .chips b { font-size: .78rem; text-transform: uppercase; letter-spacing: .07em;
-             color: var(--muted); width: 100%; font-weight: 600; }
-  .chip {
-    font: inherit; font-size: .86rem; padding: 6px 12px; border-radius: 999px;
-    border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer;
+  .chips button {
+    border: 0; background: none; padding: 0; font: inherit; color: var(--mute);
+    cursor: pointer; border-bottom: 1px solid transparent;
   }
-  .chip:hover { border-color: var(--red); color: var(--red); }
+  .chips button:hover { color: var(--red); border-bottom-color: var(--red); }
 
-  .result { margin-top: 30px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .result[hidden] { display: none; }
-  .display { background: var(--red); color: var(--white); padding: 18px 20px;
-             font-size: 1.15rem; font-weight: 600; }
-  dl { margin: 0; padding: 6px 20px 16px; }
-  .pair { display: flex; justify-content: space-between; gap: 16px;
-          padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .pair:last-child { border-bottom: 0; }
-  dt { color: var(--muted); font-size: .84rem; text-transform: uppercase; letter-spacing: .06em; }
-  dd { margin: 0; text-align: right; }
-  .timing { padding: 0 20px 16px; color: var(--muted); font-size: .82rem; }
+  .note { margin-top: 26px; color: var(--mute); font-size: .87rem; }
+  .note.err { color: var(--red); }
 
-  footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line);
-           color: var(--muted); font-size: .82rem; }
+  /* The answer. One word, large, because that is the whole question. */
+  .answer { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--hair); }
+  .answer[hidden] { display: none; }
+  .kicker { font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; color: var(--mute); }
+  .city { font-size: clamp(2.1rem, 9vw, 3rem); line-height: 1.05; letter-spacing: -.03em;
+          font-weight: 700; margin: 6px 0 12px; color: var(--red); }
+  .where { color: var(--ink); }
+  .where span { color: var(--mute); }
+  .meta { margin-top: 6px; color: var(--mute); font-size: .84rem; }
+
+  .also { margin-top: 30px; }
+  .also[hidden] { display: none; }
+  .also p { margin: 0 0 6px; font-size: .72rem; letter-spacing: .13em;
+            text-transform: uppercase; color: var(--mute); }
+  .also div { color: var(--ink); font-size: .93rem; }
+  .also em { color: var(--mute); font-style: normal; }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--hair);
+           color: var(--mute); font-size: .8rem; }
   footer a { color: var(--red); }
-  code { background: var(--tint); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <img src="mascot.svg" alt="">
-    <div>
-      <h1>Nishaan<span>.</span></h1>
-      <p class="sub">Coordinates in, place names out. No Google, no API keys.</p>
-    </div>
+    <b>Nishaan<i>.</i></b>
   </header>
 
-  <div class="status" id="status" role="status" aria-live="polite">
-    Loading place data…
-    <div class="bar"><i id="bar"></i></div>
+  <h1>Which city do these coordinates belong to?</h1>
+
+  <button class="locate" id="here">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+      <circle cx="12" cy="12" r="8"/>
+    </svg>
+    Use my location
+  </button>
+
+  <div class="or">or enter coordinates</div>
+  <div class="coords">
+    <input id="lat" inputmode="decimal" placeholder="Latitude" autocomplete="off">
+    <input id="lon" inputmode="decimal" placeholder="Longitude" autocomplete="off">
+    <button id="go" aria-label="Look up">→</button>
   </div>
 
-  <fieldset id="form" disabled>
-    <div class="row">
-      <div class="field">
-        <label for="lat">Latitude</label>
-        <input id="lat" inputmode="decimal" value="19.0760" autocomplete="off">
-      </div>
-      <div class="field">
-        <label for="lon">Longitude</label>
-        <input id="lon" inputmode="decimal" value="72.8777" autocomplete="off">
-      </div>
-    </div>
-    <div class="actions">
-      <button class="primary" id="go">Look up</button>
-      <button class="ghost" id="here">Use my location</button>
-    </div>
-    <div class="chips" id="chips" hidden><b>Try one</b></div>
-  </fieldset>
+  <div class="chips" id="chips" hidden></div>
+  <p class="note" id="note">Loading place data…</p>
 
-  <div class="result" id="result" hidden>
-    <div class="display" id="display"></div>
-    <dl>
-      <div class="pair"><dt>Locality</dt><dd id="r-locality"></dd></div>
-      <div class="pair"><dt>City</dt><dd id="r-city"></dd></div>
-      <div class="pair"><dt>State</dt><dd id="r-state"></dd></div>
-      <div class="pair"><dt>Country</dt><dd id="r-country"></dd></div>
-    </dl>
-    <div class="timing" id="timing"></div>
-  </div>
+  <section class="answer" id="answer" hidden>
+    <div class="kicker">You are in</div>
+    <div class="city" id="city"></div>
+    <div class="where" id="where"></div>
+    <div class="meta" id="meta"></div>
+
+    <div class="also" id="also" hidden>
+      <p>Also clubbed under this city</p>
+      <div id="alsoList"></div>
+    </div>
+  </section>
 
   <footer>
-    <p>This page runs the reverse geocoder <strong>entirely in your browser</strong> —
-    it downloads the place data once and does every lookup locally. Nothing is sent
-    to a server. The production service runs the same <code>core.js</code> behind
-    <code>GET /reverse?lat=&amp;lon=</code>.</p>
-    <p>Location data © <a href="https://www.geonames.org/">GeoNames</a>, licensed under
-    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
-    Provided as is, without warranty of accuracy or completeness.</p>
+    <p>Runs entirely in your browser — the place data is downloaded once and every
+    lookup happens on your device. Nothing is sent to a server.</p>
+    <p>Data © <a href="https://www.geonames.org/">GeoNames</a>,
+    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
   </footer>
 </div>
 <script type="module" src="app.js"></script>

@@ -16,8 +16,9 @@ const read = (f) => {
   return (f.endsWith('.gz') ? gunzipSync(buf) : buf).toString('utf8');
 };
 
-export const { lookup, placeCount } = createGeocoder({
+export const { lookup, localitiesOf, cityIndexAt, placeCount } = createGeocoder({
   places: read('places.tsv.gz'),
   admin1: read('admin1CodesASCII.txt'),
+  admin2: read('admin2Codes.txt'),
   countries: read('countryInfo.txt'),
 });

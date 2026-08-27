@@ -4,9 +4,10 @@ A self-hosted reverse geocoder for `artist.qalakaar.com` and `quest.qalakaar.com
 Give it a latitude and longitude, get back a human-readable place.
 
 ```
-GET /reverse?lat=12.9352&lon=77.6245
-→ {"locality":"Koramangala","city":"Bengaluru","state":"Karnataka",
-   "country":"India","displayName":"Koramangala, Bengaluru, Karnataka, India"}
+GET /reverse?lat=22.5800&lon=88.4200
+→ {"locality":"Salt Lake City","district":"North 24 Parganas","city":"Kolkata",
+   "state":"West Bengal","country":"India",
+   "displayName":"Salt Lake City, Kolkata, West Bengal, India"}
 ```
 
 No Google APIs, no keys, no external calls at runtime, no npm dependencies.
@@ -73,12 +74,16 @@ Nothing else needs to change.
 ```json
 {
   "locality": "Koramangala",
+  "district": "Bangalore Urban",
   "city": "Bengaluru",
   "state": "Karnataka",
   "country": "India",
   "displayName": "Koramangala, Bengaluru, Karnataka, India"
 }
 ```
+
+`district` is the administrative district (GeoNames `admin2`). It is deliberately
+left out of `displayName`, where it is noise and often just repeats the city.
 
 `displayName` is the non-empty fields joined by `, ` with duplicates removed, so
 a point in central Mumbai reads `Mumbai, Maharashtra, India`, not
@@ -104,6 +109,45 @@ responses carry `Cache-Control: public, max-age=86400`.
 ```json
 { "ok": true, "places": 621128, "cached": 42 }
 ```
+
+## How places are clubbed to a city
+
+"Which city do I belong to" is a question about **orbit**, not proximity. Every
+place is assigned to the strongest city whose pull reaches it:
+
+```
+score = population / distance²        ×1.6 when the city is in the place's own district
+```
+
+with two constraints: a candidate is **never considered across a state line**, and
+a city's reach scales with its size, `clamp(0.02·√population, 5 km, 60 km)`.
+
+Two simpler rules were tried and rejected by the data:
+
+- **Districts alone.** Salt Lake sits in North 24 Parganas, Kolkata in Kolkata
+  district — administratively separate, plainly the same city. Mumbai is split
+  across two districts. Districts cannot be obeyed strictly.
+- **Gravity alone.** Delhi's 11 M at 20 km outscores Noida's 294 k at 8.5 km.
+  Correct physics, wrong answer — Noida is a different state and its own city.
+
+So administrative containment is treated as **evidence, not proof**: a weight,
+not a rule. That is the only formulation found that resolves Noida correctly
+*while* keeping Salt Lake in Kolkata. The state constraint is what stops Delhi
+swallowing Noida, Gurugram and Faridabad.
+
+Anything the orbit rule cannot claim falls back to the largest city in its own
+district — a plain administrative fact. Coverage:
+
+| | |
+|---|---|
+| Claimed by orbit | 124,139 (20.0%) |
+| Claimed by district fallback | 465,102 (74.9%) |
+| No parent city | 31,887 (5.1%) |
+
+The mapping is computed **once, at build time**, by `scripts/assign-cities.mjs`,
+and stored as a row index in the extract. So it is fixed and inspectable — the
+same locality always resolves to the same city — and the runtime lookup is a
+plain nearest-neighbour scan with no scoring in it at all.
 
 ## Caching
 
@@ -245,11 +289,12 @@ Be honest with users about what this can and cannot tell them.
   above 5,000 population, so a point in rural Nebraska or the Australian outback
   may resolve to a town tens of kilometres away, reported without any hint of the
   distance.
-- **`city` is a heuristic.** It is the nearest place that has ≥100,000 people, is
-  not a neighbourhood (GeoNames `PPLX`), and lies within ~100 km. Where no such
-  place exists, `city` repeats `locality` rather than inventing one. The
-  neighbourhood exclusion matters: Dharavi has 700,000 residents and is a
-  district of Mumbai, not a city.
+- **`city` is a computed membership, not a boundary lookup.** See "How places are
+  clubbed" above. It is right on the cases that matter — Salt Lake to Kolkata,
+  Noida staying Noida — but it is inferred from population and distance, not from
+  municipal boundaries, which GeoNames does not publish. Roughly 5% of places have
+  no parent city at all; for those, `city` repeats `locality` rather than
+  inventing one.
 - **Points at sea return the nearest land.** There is no "no result" for open
   ocean, and no distance is reported, so a point 400 km offshore looks the same
   as one downtown. Validate coordinates upstream if that matters.
@@ -290,7 +335,7 @@ python3 -m http.server 8099
 # then http://127.0.0.1:8099/demo/
 ```
 
-It downloads ~7.9 MB once, indexes in ~250 ms, and each lookup runs in a few
+It downloads ~8.2 MB once, indexes in ~250 ms, and each lookup runs in a few
 milliseconds. Expect roughly 240 MB of tab memory while it holds the index, so
 it is comfortable on a laptop and heavy on an older phone.
 
@@ -300,17 +345,20 @@ Mascot: **Nishaan** (`demo/mascot.svg`), Hindi/Urdu for *landmark*. Brand red
 ## Layout
 
 ```
-core.js               shared lookup — indexing and nearest-neighbour scan
-geocode.js            Node entry point: reads data/ from disk, calls core
-server.js             HTTP endpoint, validation, caching
-client.js             browser client for the two websites
-test.js               7 assertions over known coordinates
-scripts/build-data.sh downloads and trims the GeoNames extract
-data/                 the extract, committed so the static demo can fetch it
-demo/                 static browser demo (index.html, app.js, mascot.svg)
+core.js                  shared lookup — indexing and nearest-neighbour scan
+geocode.js               Node entry point: reads data/ from disk, calls core
+server.js                HTTP endpoint, validation, caching
+client.js                browser client for the two websites
+test.js                  14 assertions, half of them city-clubbing cases
+scripts/build-data.sh    downloads and trims the GeoNames extract
+scripts/assign-cities.mjs clubs every place to a parent city, at build time
+data/                    the extract, committed so the static demo can fetch it
+demo/                    static browser demo (index.html, app.js, mascot.svg)
 ```
 
-293 lines for the service, excluding data and the demo page.
+About 370 lines for the service, excluding data and the demo page. That is past
+the original ~300-line budget; city clubbing is scope that arrived after the
+budget was set, and `scripts/assign-cities.mjs` is 75 lines of it.
 
 `core.js` is deliberately free of `node:` imports so that the server and the
 browser demo share one implementation instead of two that drift.

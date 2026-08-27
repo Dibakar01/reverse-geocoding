@@ -9,8 +9,9 @@ Offline reverse geocoder replacing the Google Maps Geocoding API for
 - **Zero runtime dependencies and zero external calls.** `package.json` has no
   `dependencies` block and should not grow one. Node stdlib only.
 - **No Google APIs, no API keys, free to run.**
-- **Under ~300 lines excluding data files.** Currently 293 for the service;
-  `demo/` is a separate deliverable and is not counted against it.
+- **Was ~300 lines; now ~370** after city clubbing was added as later scope.
+  Keep it tight, but the budget is no longer a hard line. `demo/` is a separate
+  deliverable and is not counted against it.
 - Ask before adding any data extract over 50 MB. The current one is 7.5 MB
   gzipped; `allCountries.zip` and OSM extracts are far past that line.
 
@@ -29,13 +30,16 @@ that is expected and intentional when refreshing GeoNames.
 
 ## Things that look like bugs but are not
 
-- **`city` can equal `locality`.** Deliberate. Where no place with ≥100k people
-  sits within ~100 km, repeating the locality is more honest than naming a
-  distant city.
-- **`PPLX` is excluded from city candidates.** GeoNames marks neighbourhoods as
-  `PPLX`, and some are huge — Dharavi has 700,000 residents and would otherwise
-  beat Mumbai as the "city" for points in Bandra. Population alone cannot
-  classify a place; the feature code can. There is a test for this.
+- **`city` comes from a precomputed mapping, not a runtime rule.**
+  `scripts/assign-cities.mjs` clubs every place to a parent city at build time
+  (orbit: population/distance², ×1.6 same district, never across a state line;
+  then a district fallback). `core.js` just reads the stored row index. Do not
+  reintroduce scoring into the lookup.
+- **The district term is a weight, not a rule, and that is load-bearing.**
+  Obeying districts strictly ejects Salt Lake from Kolkata; pure gravity lets
+  Delhi swallow Noida. Only the weighted form gets both right. There are tests
+  for both.
+- **`city` can equal `locality`.** Deliberate, for the ~5% with no parent city.
 - **Names come from `asciiname`, not `name`.** Half of all Indian place names
   carry diacritics (`Alīgarh`, `Āsansol`) and the plain spellings are the ones
   readers expect.

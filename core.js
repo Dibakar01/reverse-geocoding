@@ -1,17 +1,23 @@
 // Environment-agnostic reverse-geocoding core. Takes already-decompressed text
 // and returns a lookup. No node: imports, so the browser demo and the server
 // run the same code rather than two drifting copies.
+//
+// Every place is already clubbed to a parent city by scripts/assign-cities.mjs,
+// so a lookup here is a plain nearest-neighbour scan — no scoring at runtime.
 
-const CITY_POP = 100_000;
-const CITY_MAX_DEG = 100 / 111; // ~100 km expressed in degrees
-const CITY_MAX_DEG2 = CITY_MAX_DEG * CITY_MAX_DEG;
-
-export function createGeocoder({ places, admin1, countries: countryText }) {
+export function createGeocoder({ places, admin1, admin2, countries: countryText }) {
   // "IN.16" -> "Maharashtra"
   const states = new Map();
   for (const line of admin1.split('\n')) {
     const [code, name] = line.split('\t');
     if (code) states.set(code, name);
+  }
+
+  // "IN.19.572" -> "Bengaluru Urban"
+  const districts = new Map();
+  for (const line of (admin2 ?? '').split('\n')) {
+    const [code, name] = line.split('\t');
+    if (code) districts.set(code, name);
   }
 
   // "IN" -> "India"
@@ -26,16 +32,14 @@ export function createGeocoder({ places, admin1, countries: countryText }) {
   const max = (places.length / 30) | 0;
   const lat = new Float32Array(max);
   const lon = new Float32Array(max);
-  const pop = new Int32Array(max);
+  const cityOf = new Int32Array(max);   // index of the parent city, or -1
   const name = new Array(max);
   const cc = new Array(max);
   const a1 = new Array(max);
-  // PPLX is GeoNames for "section of a populated place", i.e. a neighbourhood.
-  // Dharavi is PPLX with a population of 700k; it is not a city.
-  const isSection = new Uint8Array(max);
+  const a2 = new Array(max);
 
-  // Country and admin1 codes repeat across hundreds of thousands of rows, so
-  // hold one string per distinct code instead of 1.2 M near-identical ones.
+  // Country, state and district codes repeat across hundreds of thousands of
+  // rows, so hold one string per distinct code rather than 1.8 M copies.
   const pool = new Map();
   const intern = (s) => {
     const hit = pool.get(s);
@@ -47,9 +51,6 @@ export function createGeocoder({ places, admin1, countries: countryText }) {
   // Walk line by line rather than splitting. `split` would materialise 621k
   // strings at once, and that peak — not the retained data — is what pins
   // hundreds of MB of V8 pages for the life of the process.
-  // ponytail: still ~238 MB RSS for ~40 MB of live data, because each line
-  // still allocates temporary slices. Parsing fields by character offset would
-  // cut it further; only worth it if a memory limit actually bites.
   let n = 0;
   let start = 0;
   while (start < places.length) {
@@ -57,28 +58,23 @@ export function createGeocoder({ places, admin1, countries: countryText }) {
     if (end === -1) end = places.length;
     const col = places.slice(start, end).split('\t');
     start = end + 1;
-    if (col.length < 7) continue;
+    if (col.length < 9) continue;
     name[n] = col[0];
     lat[n] = +col[1];
     lon[n] = +col[2];
     cc[n] = intern(col[3]);
     a1[n] = intern(col[4]);
-    pop[n] = +col[5] || 0;
-    isSection[n] = col[6] === 'PPLX' ? 1 : 0;
+    a2[n] = intern(col[5]);
+    cityOf[n] = +col[8];
     n++;
   }
   pool.clear();
 
-  // A "city" is the nearest place that is big enough to be one, is not merely a
-  // district of one, and is close enough to plausibly contain the point.
-  // Otherwise the locality is the best we can honestly say.
   function lookup(qlat, qlon) {
     // Equirectangular approximation: fine for nearest-neighbour ranking, and
     // the longitude scale is what makes it correct away from the equator.
     const k = Math.cos((qlat * Math.PI) / 180);
     let bestD = Infinity, best = -1;
-    let cityD = Infinity, city = -1;
-
     for (let i = 0; i < n; i++) {
       let dx = lon[i] - qlon;
       if (dx > 180) dx -= 360;
@@ -87,25 +83,57 @@ export function createGeocoder({ places, admin1, countries: countryText }) {
       const dy = lat[i] - qlat;
       const d = dy * dy + dx * dx;
       if (d < bestD) { bestD = d; best = i; }
-      if (d < cityD && pop[i] >= CITY_POP && !isSection[i]) { cityD = d; city = i; }
     }
     if (best < 0) return null;
 
     const locality = name[best];
-    const parts = [
-      locality,
-      city >= 0 && cityD <= CITY_MAX_DEG2 ? name[city] : locality,
-      states.get(`${cc[best]}.${a1[best]}`) || '',
-      countries.get(cc[best]) || '',
-    ];
+    const city = cityOf[best] >= 0 ? name[cityOf[best]] : locality;
+    const district = a2[best] ? districts.get(`${cc[best]}.${a1[best]}.${a2[best]}`) || '' : '';
+    const state = states.get(`${cc[best]}.${a1[best]}`) || '';
+    const country = countries.get(cc[best]) || '';
+
     return {
-      locality: parts[0],
-      city: parts[1],
-      state: parts[2],
-      country: parts[3],
-      displayName: [...new Set(parts.filter(Boolean))].join(', '),
+      locality, district, city, state, country,
+      // District is deliberately left out: it is useful as a field but noise in
+      // a one-line address, and often repeats the city ("Bengaluru Urban").
+      displayName: [...new Set([locality, city, state, country].filter(Boolean))].join(', '),
     };
   }
 
-  return { lookup, placeCount: n };
+  // Everything clubbed under one city, for "who else is in my city", nearest to
+  // the city centre first. Places claimed by orbit are by construction closer
+  // than ones swept in by the district fallback, so ordering by distance
+  // surfaces recognisable neighbourhoods rather than outlying villages.
+  function localitiesOf(cityIndex) {
+    if (cityIndex < 0) return [];
+    const clat = lat[cityIndex], clon = lon[cityIndex];
+    const k = Math.cos((clat * Math.PI) / 180);
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      if (cityOf[i] !== cityIndex || i === cityIndex) continue;
+      let dx = lon[i] - clon;
+      if (dx > 180) dx -= 360; else if (dx < -180) dx += 360;
+      dx *= k;
+      const dy = lat[i] - clat;
+      out.push({ name: name[i], d: dy * dy + dx * dx });
+    }
+    out.sort((a, b) => a.d - b.d);
+    return out.map((p) => p.name);
+  }
+
+  function cityIndexAt(qlat, qlon) {
+    const k = Math.cos((qlat * Math.PI) / 180);
+    let bestD = Infinity, best = -1;
+    for (let i = 0; i < n; i++) {
+      let dx = lon[i] - qlon;
+      if (dx > 180) dx -= 360; else if (dx < -180) dx += 360;
+      dx *= k;
+      const dy = lat[i] - qlat;
+      const d = dy * dy + dx * dx;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best < 0 ? -1 : cityOf[best];
+  }
+
+  return { lookup, localitiesOf, cityIndexAt, placeCount: n };
 }
