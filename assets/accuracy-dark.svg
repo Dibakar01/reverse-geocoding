@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 532" width="1200" height="532" role="img" aria-label="Share of points near each metro that resolve to it. Mean rises from 59% with the nearest-big-place heuristic to 94% with city clubbing. Delhi 17 to 99; Mumbai 79 to 97; Bengaluru 82 to 97; Chennai 49 to 100; Kolkata 26 to 88; Hyderabad 39 to 99; Pune 81 to 88; Ahmedabad 99 to 100; Kochi 61 to 77">
+  <rect width="1200" height="532" rx="18" fill="#241b1a"/>
+  <rect x="0.5" y="0.5" width="1199" height="531" rx="17.5" fill="none" stroke="#332927"/>
+  <text x="64" y="52" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="15" fill="#9c8d8a" letter-spacing="2.5">SHARE OF POINTS THAT RESOLVE TO THE RIGHT METRO</text>
+  <rect x="232" y="66" width="10" height="9" rx="4.5" fill="#4a3f3d"/><text x="252" y="75" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" fill="#9c8d8a">nearest big place — mean 59%</text>
+  <rect x="560" y="66" width="10" height="9" rx="4.5" fill="#ff4b3a"/><text x="580" y="75" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" fill="#f4efee">clubbed to a city — mean 94%</text>
+  <text x="64" y="123" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Delhi</text>
+  <rect x="232" y="108" width="122.4" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="117" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">17%</text>
+  <rect x="232" y="122" width="712.8" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="131" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">99%</text>
+  <text x="64" y="165" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Mumbai</text>
+  <rect x="232" y="150" width="568.8" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="159" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">79%</text>
+  <rect x="232" y="164" width="698.4" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="173" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">97%</text>
+  <text x="64" y="207" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Bengaluru</text>
+  <rect x="232" y="192" width="590.4" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="201" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">82%</text>
+  <rect x="232" y="206" width="698.4" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="215" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">97%</text>
+  <text x="64" y="249" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Chennai</text>
+  <rect x="232" y="234" width="352.8" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="243" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">49%</text>
+  <rect x="232" y="248" width="720" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="257" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">100%</text>
+  <text x="64" y="291" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Kolkata</text>
+  <rect x="232" y="276" width="187.2" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="285" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">26%</text>
+  <rect x="232" y="290" width="633.6" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="299" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">88%</text>
+  <text x="64" y="333" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Hyderabad</text>
+  <rect x="232" y="318" width="280.8" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="327" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">39%</text>
+  <rect x="232" y="332" width="712.8" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="341" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">99%</text>
+  <text x="64" y="375" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Pune</text>
+  <rect x="232" y="360" width="583.2" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="369" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">81%</text>
+  <rect x="232" y="374" width="633.6" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="383" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">88%</text>
+  <text x="64" y="417" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Ahmedabad</text>
+  <rect x="232" y="402" width="712.8" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="411" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">99%</text>
+  <rect x="232" y="416" width="720" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="425" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">100%</text>
+  <text x="64" y="459" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" fill="#f4efee">Kochi</text>
+  <rect x="232" y="444" width="439.2" height="9" rx="4.5" fill="#4a3f3d"/>
+  <text x="968" y="453" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">61%</text>
+  <rect x="232" y="458" width="554.4" height="9" rx="4.5" fill="#ff4b3a"/>
+  <text x="968" y="467" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#ff4b3a">77%</text>
+  <text x="64" y="514" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" fill="#9c8d8a">Same points, same data, both rules — 121 samples within ~10 km of each centre. Generated by scripts/measure-accuracy.mjs.</text>
+</svg>

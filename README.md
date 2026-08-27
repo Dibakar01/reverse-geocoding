@@ -10,14 +10,15 @@
 **Coordinates in, the city you actually belong to out.**<br>
 No Google, no API keys, no external calls, no dependencies.
 
-[![Data: GeoNames CC BY 4.0](https://img.shields.io/badge/data-GeoNames_CC_BY_4.0-d92819?style=flat-square)](https://www.geonames.org/)
-[![621,128 places](https://img.shields.io/badge/621,128-places_offline-d92819?style=flat-square)](#data)
-[![Dependencies: 0](https://img.shields.io/badge/dependencies-0-1a1211?style=flat-square)](package.json)
-[![Runs offline](https://img.shields.io/badge/runs-fully_offline-7a6a68?style=flat-square)](#why-offline)
+[![tests](https://img.shields.io/github/actions/workflow/status/Dibakar01/reverse-geocoding/test.yml?branch=main&style=flat-square&label=tests&color=d92819)](../../actions/workflows/test.yml)
+[![release](https://img.shields.io/github/v/release/Dibakar01/reverse-geocoding?style=flat-square&color=d92819)](../../releases)
+[![licence MIT](https://img.shields.io/badge/licence-MIT-d92819?style=flat-square)](LICENSE)
+[![dependencies 0](https://img.shields.io/badge/dependencies-0-1a1211?style=flat-square)](package.json)
+[![data GeoNames CC BY 4.0](https://img.shields.io/badge/data-GeoNames_CC_BY_4.0-7a6a68?style=flat-square)](https://www.geonames.org/)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="A latitude and longitude go in. The point is matched to its nearest locality, Koramangala, then clubbed to the city it belongs to: Bengaluru. 621,128 places, 0.7 ms per lookup, zero dependencies." src="assets/hero-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-animated-dark.svg">
+  <img alt="Coordinates go in and the city they belong to comes out. Koramangala resolves to Bengaluru, Salt Lake City to Kolkata, Vashi to Navi Mumbai. 621,128 places, 0.7 ms per lookup, zero dependencies." src="assets/hero-animated-light.svg" width="100%">
 </picture>
 
 **[Try it live →](https://dibakar01.github.io/reverse-geocoding/demo/)**
@@ -60,42 +61,10 @@ for Bandra. Belonging is a question about **orbit** — whose pull are you in?
 score = population / distance²        ×1.6 if the city is in your own district
 ```
 
-<table>
-<tr><td width="50%" valign="top">
-
-**Never across a state line**
-
-Delhi's 11 M outweighs Noida's 294 k from 20 km away. But Noida is in Uttar
-Pradesh and is its own city. The state constraint is what keeps Noida, Gurugram
-and Faridabad off Delhi's books.
-
-</td><td width="50%" valign="top">
-
-**Districts weigh, they don't rule**
-
-Obey districts strictly and Salt Lake leaves Kolkata. Ignore them and Noida
-joins Delhi. As a 1.6× weight, both come out right — administrative containment
-is evidence, not proof.
-
-</td></tr>
-<tr><td valign="top">
-
-**Size alone can't spot a suburb**
-
-Ambattur is 10.04× smaller than Chennai and is one of its zones. Kalyan is
-10.05× smaller than Mumbai and is its own city. Identical ratios, opposite
-answers.
-
-</td><td valign="top">
-
-**So distance decides it**
-
-Ambattur sits 13 km inside Chennai's ~12 km footprint. Kalyan sits 42 km outside
-Mumbai's ~20 km one. Absorption needs **both** — 8× larger *and* close enough to
-actually contain you.
-
-</td></tr>
-</table>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/rules-dark.svg">
+  <img alt="Four rules decide where a place belongs. One, never across a state line: Delhi outweighs Noida from 20 km, but Noida is in Uttar Pradesh and is its own city. Two, districts weigh rather than rule: obey them and Salt Lake leaves Kolkata, ignore them and Noida joins Delhi, so they act as a 1.6x weight. Three, size alone cannot spot a suburb: Ambattur is 10.04x smaller than Chennai and is one of its zones, Kalyan is 10.05x smaller than Mumbai and is its own city. Four, distance decides it: absorption needs both a size ratio and closeness within the parent city footprint." src="assets/rules-light.svg" width="100%">
+</picture>
 
 ### How a place finds its city
 
@@ -110,16 +79,17 @@ the runtime lookup is a plain nearest-neighbour scan with no scoring in it.
 
 ## Accuracy
 
-An independent audit of 37 well-known localities found the first version unfit
-to ship — Delhi resolved correctly for under half its own area. Share of points
-within ~10 km of each centre that resolve to that metro:
+An independent audit of 37 well-known localities found the first version unfit to
+ship — Delhi resolved correctly for under half its own area. Both rules measured
+over the same points and the same data, 121 samples within ~10 km of each centre:
 
-| Metro | Before | Now |  | Metro | Before | Now |
-|---|---:|---:|---|---|---:|---:|
-| Delhi | 48% | **99%** |  | Hyderabad | 86% | **99%** |
-| Chennai | 77% | **100%** |  | Pune | 73% | **91%** |
-| Mumbai | 83% | **100%** |  | Kolkata | 69% | **86%** |
-| Ahmedabad | 93% | **100%** |  | Kochi | 7% | **86%** |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/accuracy-dark.svg">
+  <img alt="Share of points near each metro that resolve to it, nearest big place versus clubbed to a city, in percent: Delhi 17 to 99, Mumbai 79 to 97, Bengaluru 82 to 97, Chennai 49 to 100, Kolkata 26 to 88, Hyderabad 39 to 99, Pune 81 to 88, Ahmedabad 99 to 100, Kochi 61 to 77. Mean rises from 59 to 94 percent." src="assets/accuracy-light.svg" width="100%">
+</picture>
+
+Mean metro accuracy goes from **59% to 94%**. The chart is generated by
+`npm run measure`, so it cannot drift from the code.
 
 Three separate causes, each needing its own fix:
 
@@ -202,6 +172,14 @@ configuration; budget 512 MB. A `systemd` unit for a plain VPS is in
 - **Populations are GeoNames' own and often stale**, and they drive the
   clustering. Noida is listed at 294 k against a real figure several times that.
 
+## Contributing
+
+The most valuable contribution is **a coordinate that resolves to the wrong
+city** — [report one](../../issues/new?template=wrong-city.yml). Every rule in
+`scripts/assign-cities.mjs` exists because a real place resolved wrongly, and
+most are constrained from both sides. See [CONTRIBUTING.md](CONTRIBUTING.md)
+and [SECURITY.md](SECURITY.md).
+
 ## Attribution
 
 Data from [GeoNames](https://www.geonames.org/), licensed
@@ -214,7 +192,8 @@ licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0<
 ```
 
 No OpenStreetMap data is used, so no ODbL obligation and no Nominatim usage
-policy applies.
+policy applies. The code is [MIT](LICENSE); the data licence is separate and
+stays with GeoNames.
 
 <div align="center">
 <br>

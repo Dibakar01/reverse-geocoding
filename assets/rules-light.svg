@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" role="img" aria-label="The four rules that decide which city a place belongs to: never across a state line; districts weigh rather than rule; size alone cannot spot a suburb; distance against the parent city footprint decides it.">
+  <rect width="1200" height="420" rx="18" fill="#fdf3f2"/>
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="17.5" fill="none" stroke="#ece4e2"/>
+  <text x="64" y="52" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="15" fill="#7a6a68" letter-spacing="2.5">FOUR RULES DECIDE WHERE A PLACE BELONGS</text>
+  <rect x="64" y="104" width="504" height="128" rx="12" fill="#FFFFFF" stroke="#ece4e2"/>
+  <circle cx="94" cy="136" r="13" fill="#d92819"/>
+  <text x="94" y="141" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">1</text>
+  <text x="120" y="141" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="18" font-weight="700" fill="#1a1211">Never across a state line</text>
+  <text x="88" y="174" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">Delhi outweighs Noida from 20 km. But Noida is in</text>
+  <text x="88" y="195" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">Uttar Pradesh and is its own city.</text>
+  <rect x="632" y="104" width="504" height="128" rx="12" fill="#FFFFFF" stroke="#ece4e2"/>
+  <circle cx="662" cy="136" r="13" fill="#d92819"/>
+  <text x="662" y="141" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">2</text>
+  <text x="688" y="141" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="18" font-weight="700" fill="#1a1211">Districts weigh, they don’t rule</text>
+  <text x="656" y="174" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">Obey them and Salt Lake leaves Kolkata. Ignore them</text>
+  <text x="656" y="195" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">and Noida joins Delhi. As a 1.6× weight, both are</text>
+  <text x="656" y="216" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">right.</text>
+  <rect x="64" y="256" width="504" height="128" rx="12" fill="#FFFFFF" stroke="#ece4e2"/>
+  <circle cx="94" cy="288" r="13" fill="#d92819"/>
+  <text x="94" y="293" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">3</text>
+  <text x="120" y="293" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="18" font-weight="700" fill="#1a1211">Size alone can’t spot a suburb</text>
+  <text x="88" y="326" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">Ambattur is 10.04× smaller than Chennai and is one</text>
+  <text x="88" y="347" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">of its zones. Kalyan is 10.05× smaller than Mumbai</text>
+  <text x="88" y="368" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">and is not.</text>
+  <rect x="632" y="256" width="504" height="128" rx="12" fill="#FFFFFF" stroke="#ece4e2"/>
+  <circle cx="662" cy="288" r="13" fill="#d92819"/>
+  <text x="662" y="293" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">4</text>
+  <text x="688" y="293" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="18" font-weight="700" fill="#1a1211">So distance decides it</text>
+  <text x="656" y="326" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">Ambattur sits inside Chennai’s footprint, Kalyan</text>
+  <text x="656" y="347" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14.5" fill="#7a6a68">well outside Mumbai’s. Absorption needs both.</text>
+</svg>

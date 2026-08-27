@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <rect width="1280" height="640" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="1280" height="640" fill="#fdf3f2"/>
+  <rect x="0" y="0" width="1280" height="10" fill="#d92819"/>
+  <g transform="translate(96 116) scale(1.15)">
+    <path fill="#d92819" d="M60 10C40.65 10 25 25.65 25 45c0 26.25 35 65 35 65s35-38.75 35-65c0-19.35-15.65-35-35-35z"/>
+    <circle cx="48" cy="40" r="6.5" fill="#FFFFFF"/><circle cx="72" cy="40" r="6.5" fill="#FFFFFF"/>
+    <path d="M47 56q13 12 26 0" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="252" y="196" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="76" font-weight="700" fill="#1a1211" letter-spacing="-2">Nishaan</text>
+  <text x="96" y="308" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="34" fill="#1a1211">Coordinates in, the city you actually</text>
+  <text x="96" y="352" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="34" fill="#1a1211">belong to out.</text>
+  <text x="96" y="410" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="24" fill="#7a6a68">No Google, no API keys, no external calls, no dependencies.</text>
+  <line x1="96" y1="462" x2="1184" y2="462" stroke="#ece4e2"/>
+  <g font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+    <text x="96"  y="522" font-size="38" font-weight="700" fill="#d92819">621,128</text><text x="96"  y="556" font-size="20" fill="#7a6a68">places, offline</text>
+    <text x="450" y="522" font-size="38" font-weight="700" fill="#d92819">0.7 ms</text><text x="450" y="556" font-size="20" fill="#7a6a68">per lookup</text>
+    <text x="800" y="522" font-size="38" font-weight="700" fill="#d92819">94%</text><text x="800" y="556" font-size="20" fill="#7a6a68">metro accuracy</text>
+  </g>
+</svg>

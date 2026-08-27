@@ -2,12 +2,36 @@
   "name": "reverse-geocoding",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "description": "Self-hosted offline reverse geocoder (GeoNames data, no external APIs)",
-  "engines": { "node": ">=20" },
+  "license": "MIT",
+  "author": "Dibakar Upadhyaya",
+  "homepage": "https://dibakar01.github.io/reverse-geocoding/demo/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dibakar01/reverse-geocoding.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Dibakar01/reverse-geocoding/issues"
+  },
+  "keywords": [
+    "reverse-geocoding",
+    "geocoding",
+    "geonames",
+    "india",
+    "offline",
+    "zero-dependencies",
+    "geolocation",
+    "self-hosted"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build-data": "sh scripts/build-data.sh",
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "build-figures": "node scripts/build-figures.mjs",
+    "measure": "node scripts/measure-accuracy.mjs"
   }
 }

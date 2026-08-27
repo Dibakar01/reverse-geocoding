@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Try a coordinate first
+    url: https://dibakar01.github.io/reverse-geocoding/demo/
+    about: The live demo runs the same code — check the result there before filing.

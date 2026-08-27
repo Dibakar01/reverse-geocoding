@@ -1,0 +1,42 @@
+name: Wrong city for a coordinate
+description: A point resolves to a city it does not belong to
+labels: ["accuracy"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful report this project can get. Every clubbing rule in
+        `scripts/assign-cities.mjs` exists because a real place resolved wrongly.
+  - type: input
+    id: lat
+    attributes:
+      label: Latitude
+      placeholder: "22.5800"
+    validations: { required: true }
+  - type: input
+    id: lon
+    attributes:
+      label: Longitude
+      placeholder: "88.4200"
+    validations: { required: true }
+  - type: input
+    id: got
+    attributes:
+      label: City it returned
+      placeholder: "Dam Dam"
+    validations: { required: true }
+  - type: input
+    id: want
+    attributes:
+      label: City it should return
+      placeholder: "Kolkata"
+    validations: { required: true }
+  - type: textarea
+    id: why
+    attributes:
+      label: How do you know?
+      description: |
+        Municipal corporation, ward, postal address, local knowledge — anything.
+        Administrative boundaries and everyday usage disagree surprisingly often,
+        and which one you mean matters.
+    validations: { required: true }

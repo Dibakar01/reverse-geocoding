@@ -1,0 +1,23 @@
+name: Bug report
+description: Something other than a wrong city
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected instead
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. npm run build-data
+        2. npm start
+        3. curl 'localhost:3000/reverse?lat=..&lon=..'
+    validations: { required: true }
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: "v22.x"
