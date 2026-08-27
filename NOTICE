@@ -1,0 +1,19 @@
+Nishaan — reverse geocoding
+Copyright (c) 2026 Dibakar Upadhyaya
+
+The software in this repository is licensed under the MIT License; see LICENSE.
+
+Place data under data/ is NOT covered by that licence. It is derived from
+GeoNames (https://www.geonames.org/) and is licensed under Creative Commons
+Attribution 4.0 International:
+
+    https://creativecommons.org/licenses/by/4.0/
+
+Attribution is a condition of that licence, not a courtesy. Any site or product
+displaying results derived from this data must carry a visible credit, for
+example:
+
+    Location data (c) GeoNames, licensed under CC BY 4.0
+
+GeoNames provides the data "as is", without warranty of accuracy, timeliness or
+completeness.
