@@ -1,0 +1,29 @@
+#!/bin/sh
+# Downloads GeoNames dumps and trims them to the columns we actually use.
+# Output: data/places.tsv.gz  (name, lat, lon, countryCode, admin1Code, population, featureCode)
+set -eu
+cd "$(dirname "$0")/.."
+base=https://download.geonames.org/export/dump
+rm -rf tmp-geonames && mkdir -p tmp-geonames data && cd tmp-geonames
+
+echo "Downloading GeoNames dumps (~21 MB)..."
+curl -fsSL -O "$base/IN.zip"              # full India gazetteer, ~558k populated places
+curl -fsSL -O "$base/cities5000.zip"      # rest of world, population >= 5000
+curl -fsSL -O "$base/admin1CodesASCII.txt"
+curl -fsSL -O "$base/countryInfo.txt"
+unzip -oq IN.zip IN.txt
+unzip -oq cities5000.zip cities5000.txt
+
+# GeoNames columns: 2=name 3=asciiname 5=lat 6=lon 7=featureClass 8=featureCode
+#                    9=country 11=admin1 15=population
+# asciiname is preferred: half of all Indian place names carry diacritics
+# (Alīgarh, Āsansol) and the plain spellings are what readers expect.
+echo "Building data/places.tsv.gz..."
+row='{n = ($3 != "" ? $3 : $2); print n"\t"$5"\t"$6"\t"$9"\t"$11"\t"$15"\t"$8}'
+{ awk -F'\t' "\$7==\"P\" $row" IN.txt
+  awk -F'\t' "\$9!=\"IN\" $row" cities5000.txt
+} | gzip -9 > ../data/places.tsv.gz
+cp admin1CodesASCII.txt countryInfo.txt ../data/
+
+cd .. && rm -rf tmp-geonames
+echo "Done: $(ls -lh data/places.tsv.gz | awk '{print $5}') in data/places.tsv.gz"

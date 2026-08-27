@@ -1,0 +1,13 @@
+{
+  "name": "reverse-geocoding",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted offline reverse geocoder (GeoNames data, no external APIs)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build-data": "sh scripts/build-data.sh",
+    "start": "node server.js",
+    "test": "node --test"
+  }
+}
