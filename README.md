@@ -273,18 +273,44 @@ Be honest with users about what this can and cannot tell them.
 - **The extract is a snapshot.** New places appear only when you re-run
   `npm run build-data`.
 
+## The demo page
+
+`demo/` is a static page that runs the geocoder **entirely in the browser** —
+it fetches the same extract, decompresses it with `DecompressionStream`, and
+calls the same `core.js` the server does. No server, no cold start, nothing sent
+anywhere. It exists so the service can be shown to people without hosting it.
+
+Open it locally with any static server from the repo root:
+
+```sh
+python3 -m http.server 8099
+# then http://127.0.0.1:8099/demo/
+```
+
+It downloads ~7.9 MB once, indexes in ~250 ms, and each lookup runs in a few
+milliseconds. Expect roughly 240 MB of tab memory while it holds the index, so
+it is comfortable on a laptop and heavy on an older phone.
+
+Mascot: **Nishaan** (`demo/mascot.svg`), Hindi/Urdu for *landmark*. Brand red
+`#d92819` on white, with a `favicon.svg` variant that stays legible at 16 px.
+
 ## Layout
 
 ```
-geocode.js            data loading and nearest-neighbour lookup
+core.js               shared lookup — indexing and nearest-neighbour scan
+geocode.js            Node entry point: reads data/ from disk, calls core
 server.js             HTTP endpoint, validation, caching
 client.js             browser client for the two websites
 test.js               7 assertions over known coordinates
 scripts/build-data.sh downloads and trims the GeoNames extract
-data/                 generated, gitignored
+data/                 the extract, committed so the static demo can fetch it
+demo/                 static browser demo (index.html, app.js, mascot.svg)
 ```
 
-276 lines excluding data.
+293 lines for the service, excluding data and the demo page.
+
+`core.js` is deliberately free of `node:` imports so that the server and the
+browser demo share one implementation instead of two that drift.
 
 ## Resource use
 
@@ -295,10 +321,10 @@ Measured on macOS with Node 24, after loading all 621,128 places:
 | Cold start | ~0.4 s |
 | Lookup (cache miss) | ~0.7 ms |
 | Lookup (cache hit) | in-memory map read |
-| Live data | ~90 MB (35 MB heap + 57 MB external) |
-| Resident (RSS) | ~290 MB |
+| Live data | ~40 MB |
+| Resident (RSS) | ~240 MB |
 
 RSS runs well above live data because V8 does not return the pages it touched
-while parsing. It does not grow with traffic, and capping the heap
+while indexing. It does not grow with traffic, and capping the heap
 (`--max-old-space-size=96`) still serves correctly, so 512 MB is a safe
 allocation. These figures are from macOS; container numbers were not measured.

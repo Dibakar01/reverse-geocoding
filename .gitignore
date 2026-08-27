@@ -1,5 +1,3 @@
 node_modules/
-data/*.txt
-data/*.gz
 cache.json
 tmp-geonames/
