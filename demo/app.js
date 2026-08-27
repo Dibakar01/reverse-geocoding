@@ -1,18 +1,14 @@
-// Browser entry point. Same core.js the server uses, different way of getting
-// the bytes in.
+// Browser entry point. Same core.js the server runs, plus a globe drawn from
+// the same coordinates the lookup scans.
 import { createGeocoder } from '../core.js';
+import { createGlobe } from './globe.js';
 
 const $ = (id) => document.getElementById(id);
-const note = $('note');
-const say = (msg, isError = false) => {
-  note.textContent = msg;
-  note.className = isError ? 'note err' : 'note';
-};
+const say = (m) => { $('status').textContent = m; };
 
 async function loadText(url, onProgress) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} returned ${res.status}`);
-
   const total = Number(res.headers.get('content-length')) || 0;
   const chunks = [];
   let got = 0;
@@ -20,131 +16,128 @@ async function loadText(url, onProgress) {
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    chunks.push(value);
-    got += value.length;
+    chunks.push(value); got += value.length;
     if (onProgress && total) onProgress(got / total);
   }
-
   let bytes = new Uint8Array(got);
   let at = 0;
   for (const c of chunks) { bytes.set(c, at); at += c.length; }
-
-  // Some hosts serve .gz with Content-Encoding and the browser has already
-  // undone it; others hand over the raw member. Check the magic number rather
-  // than assume either way.
+  // Some hosts serve .gz already decoded, others hand over the raw member.
+  // Check the magic number rather than assume either way.
   if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
-    if (typeof DecompressionStream !== 'function') {
-      throw new Error('This browser lacks DecompressionStream. Try a current Chrome, Safari or Firefox.');
-    }
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+    if (typeof DecompressionStream !== 'function') throw new Error('This browser lacks DecompressionStream.');
+    const s = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    bytes = new Uint8Array(await new Response(s).arrayBuffer());
   }
   return new TextDecoder().decode(bytes);
 }
 
-// India's gazetteer was bulk-imported and a handful of records are roads or
-// landmarks rather than places ("Nrupathunga Rd", "Badami House"). They sit at
-// city centres, so a nearest-first list surfaces them straight away. This hides
-// them from that list only — geocoding still resolves them, which is correct if
-// you are actually standing on one.
-const INFRASTRUCTURE = /\s(Rd|Road|Flyover|Bridge|Underpass|Subway|Circle|Junction|House)$/;
+let geo, globe;
 
-const PRESETS = [
-  ['Koramangala', 12.9352, 77.6245], ['Bandra', 19.0596, 72.8295],
-  ['Salt Lake', 22.5800, 88.4200], ['Noida', 28.5355, 77.3910],
-  ['Connaught Place', 28.6315, 77.2167], ['T Nagar', 13.0418, 80.2341],
-  ['Banjara Hills', 17.4126, 78.4392], ['London', 51.5074, -0.1278],
-];
-
-let geo;
-
-function show(lat, lon) {
+function present(lat, lon, { spin = false } = {}) {
   const t0 = performance.now();
   const r = geo.lookup(lat, lon);
-  const cityIndex = geo.cityIndexAt(lat, lon);
   const ms = performance.now() - t0;
-  if (!r) return say('No place found for those coordinates.', true);
+  if (!r) return;
 
   $('city').textContent = r.city;
-
-  // Only say the locality when it adds something the city has not already said.
   const bits = [];
   if (r.locality && r.locality !== r.city) bits.push(r.locality);
   if (r.district && r.district !== r.city) bits.push(`<span>${r.district} district</span>`);
-  $('where').innerHTML = bits.join(' · ');
-  $('meta').textContent = [r.state, r.country].filter(Boolean).join(', ')
-    + ` · ${lat.toFixed(4)}, ${lon.toFixed(4)} · ${ms.toFixed(0)} ms`;
+  $('where').innerHTML = bits.join(' · ') || `<span>${[r.state, r.country].filter(Boolean).join(', ')}</span>`;
+  $('meta').textContent = `${[r.state, r.country].filter(Boolean).join(', ')} · ${lat.toFixed(3)}, ${lon.toFixed(3)} · ${ms.toFixed(0)} ms`;
+  $('answer').classList.add('on');
 
-  const also = $('also');
-  if (cityIndex >= 0) {
-    const members = geo.localitiesOf(cityIndex)
-      .filter((m) => m !== r.locality && !INFRASTRUCTURE.test(m));
-    if (members.length) {
-      const head = members.slice(0, 8).join(', ');
-      const rest = members.length - 8;
-      $('alsoList').innerHTML = rest > 0 ? `${head} <em>and ${rest.toLocaleString()} more</em>` : head;
-      also.hidden = false;
-    } else also.hidden = true;
-  } else also.hidden = true;
+  // Nishaan reacts, which is the only feedback that a click registered.
+  const pin = $('pin');
+  pin.classList.remove('hit');
+  void pin.offsetWidth;              // restart the animation
+  pin.classList.add('hit');
 
-  $('answer').hidden = false;
-  say(`${geo.placeCount.toLocaleString()} places loaded, all lookups run on your device.`);
+  if (globe) {
+    globe.setMarker(lat, lon);          // show where the answer came from
+    if (spin) globe.spinTo(lat, lon);
+  }
 }
 
-function submit() {
-  const lat = Number($('lat').value), lon = Number($('lon').value);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
-    return say('Latitude must be between −90 and 90, longitude between −180 and 180.', true);
-  }
-  show(lat, lon);
+function fallbackMode(message) {
+  say(message);
+  $('fallback').style.display = 'block';
+  $('bar').parentElement.style.display = 'none';
+  $('go').addEventListener('click', () => {
+    const lat = Number($('lat').value), lon = Number($('lon').value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      return say('Latitude −90..90, longitude −180..180.');
+    }
+    $('loading').classList.add('gone');
+    present(lat, lon);
+  });
 }
 
 (async () => {
   try {
     const [places, admin1, admin2, countries] = await Promise.all([
-      loadText('../data/places.tsv.gz', (p) => say(`Loading place data… ${Math.round(p * 100)}%`)),
+      loadText('../data/places.tsv.gz', (p) => { $('bar').style.width = `${Math.round(p * 92)}%`; }),
       loadText('../data/admin1CodesASCII.txt'),
       loadText('../data/admin2Codes.txt'),
       loadText('../data/countryInfo.txt'),
     ]);
-    say('Indexing places…');
-    await new Promise((r) => setTimeout(r, 0)); // let that paint before we block
+    say('Indexing…');
+    $('bar').style.width = '96%';
+    await new Promise((r) => setTimeout(r, 0));   // let that paint before we block
     geo = createGeocoder({ places, admin1, admin2, countries });
-    say(`${geo.placeCount.toLocaleString()} places loaded, all lookups run on your device.`);
+    $('bar').style.width = '100%';
   } catch (err) {
-    return say(`Could not load place data: ${err.message}`, true);
+    return fallbackMode(`Could not load place data: ${err.message}`);
   }
 
-  $('go').addEventListener('click', submit);
-  for (const el of ['lat', 'lon']) {
-    $(el).addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  const canvas = $('globe');
+  try {
+    globe = createGlobe(canvas, geo.coords(), { near: '#d92819', far: '#c9b8b4' });
+  } catch (err) {
+    globe = null;
   }
+  if (!globe) return fallbackMode('This browser has no WebGL, so the globe is unavailable.');
+
+  $('loading').classList.add('gone');
+  present(12.9352, 77.6245);           // open on Koramangala, already in view
+
+  // Drag to spin. A click that did not drag is a pick.
+  let down = null, moved = 0;
+  const pos = (e) => (e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY });
+  const start = (e) => { down = pos(e); moved = 0; canvas.classList.add('dragging'); };
+  const move = (e) => {
+    if (!down) return;
+    const p = pos(e);
+    moved += Math.abs(p.x - down.x) + Math.abs(p.y - down.y);
+    globe.drag(p.x - down.x, p.y - down.y);
+    down = p;
+    if (e.cancelable) e.preventDefault();
+  };
+  const end = (e) => {
+    canvas.classList.remove('dragging');
+    if (down && moved < 5) {
+      const p = e.changedTouches ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY } : { x: e.clientX, y: e.clientY };
+      const hit = globe.pick(p.x, p.y);
+      if (hit) present(hit.lat, hit.lon);
+      else $('hint').textContent = 'That was past the edge — try on the globe';
+    }
+    down = null;
+  };
+  canvas.addEventListener('pointerdown', start);
+  window.addEventListener('pointermove', move, { passive: false });
+  window.addEventListener('pointerup', end);
 
   $('here').addEventListener('click', () => {
-    if (!navigator.geolocation) return say('This browser has no geolocation support.', true);
-    say('Asking your browser for a position…');
+    if (!navigator.geolocation) { $('hint').textContent = 'No geolocation in this browser'; return; }
+    $('hint').textContent = 'Asking your browser…';
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        $('lat').value = pos.coords.latitude.toFixed(4);
-        $('lon').value = pos.coords.longitude.toFixed(4);
-        submit();
-      },
-      (err) => say(`Could not get your location: ${err.message}`, true),
+      (p) => { $('hint').textContent = 'Drag to spin · click anywhere'; present(p.coords.latitude, p.coords.longitude, { spin: true }); },
+      (err) => { $('hint').textContent = `Location unavailable: ${err.message}`; },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
     );
   });
 
-  const chips = $('chips');
-  for (const [label, lat, lon] of PRESETS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = label;
-    b.addEventListener('click', () => {
-      $('lat').value = lat;
-      $('lon').value = lon;
-      submit();
-    });
-    chips.append(b);
-  }
-  chips.hidden = false;
+  // Exposed so the interface can be driven in tests.
+  window.__nishaan = { geo, globe, present };
 })();

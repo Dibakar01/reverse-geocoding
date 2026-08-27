@@ -137,5 +137,9 @@ export function createGeocoder({ places, admin1, admin2, countries: countryText 
     return best < 0 ? -1 : cityOf[best];
   }
 
-  return { lookup, localitiesOf, cityIndexAt, placeCount: n };
+  // The globe draws every place as a point, so it needs the raw coordinates.
+  // Subarrays, not copies — these are the same buffers the scan reads.
+  const coords = () => ({ lat: lat.subarray(0, n), lon: lon.subarray(0, n), cityOf: cityOf.subarray(0, n) });
+
+  return { lookup, localitiesOf, cityIndexAt, coords, placeCount: n };
 }

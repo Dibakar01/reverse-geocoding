@@ -2,148 +2,152 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nishaan — which city am I in?</title>
 <meta name="description" content="Which city does a coordinate belong to? 621,128 places, resolved entirely in your browser. No Google, no API keys.">
 <meta name="theme-color" content="#d92819">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Nishaan — which city am I in?">
-<meta property="og:description" content="Coordinates in, the city you actually belong to out. 621,128 places, resolved in your browser. No Google, no API keys.">
+<meta property="og:description" content="Spin the globe, click anywhere, and find out which city you belong to. 621,128 places, resolved in your browser. No Google, no API keys.">
 <meta property="og:url" content="https://dibakar01.github.io/reverse-geocoding/demo/">
 <meta property="og:image" content="https://dibakar01.github.io/reverse-geocoding/assets/social-preview.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Nishaan — which city am I in?">
-<meta name="twitter:description" content="Coordinates in, the city you actually belong to out. Runs entirely in your browser.">
+<meta name="twitter:description" content="Spin the globe, click anywhere, find your city. Runs entirely in your browser.">
 <meta name="twitter:image" content="https://dibakar01.github.io/reverse-geocoding/assets/social-preview.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
   :root {
-    --red: #d92819; --white: #fff;
-    --ink: #17110f; --mute: #857a75; --hair: #ece4e2;
+    --red:#d92819; --white:#fff; --ink:#17110f; --mute:#8a7d79;
+    --hair:#ece4e2; --tint:#fdf3f2; --pane:rgba(255,255,255,.86);
   }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  @media (prefers-color-scheme: dark) {
+    :root { --white:#100c0b; --ink:#f6f1f0; --mute:#9c8d8a; --hair:#2c2321;
+            --tint:#181211; --pane:rgba(20,15,14,.84); --red:#ff4b3a; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
   body {
-    margin: 0; background: var(--white); color: var(--ink);
-    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    margin:0; overflow:hidden; background:var(--white); color:var(--ink);
+    font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 56px 24px 72px; }
 
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
-  header img { width: 34px; }
-  header b { font-size: 1.05rem; letter-spacing: -.01em; }
-  header b i { color: var(--red); font-style: normal; }
+  /* The globe fills the page; everything else floats over it. */
+  #stage { position:fixed; inset:0; }
+  #globe { width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+  #globe.dragging { cursor:grabbing; }
+  #globe.busy { cursor:progress; }
 
-  h1 { font-size: 1.45rem; line-height: 1.3; margin: 0 0 28px; letter-spacing: -.02em; font-weight: 650; }
-
-  /* Primary action: the thing most people want is one button. */
-  .locate {
-    width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
-    font: inherit; font-weight: 600; padding: 15px; border-radius: 12px;
-    background: var(--red); color: var(--white); border: 0; cursor: pointer;
+  .brand {
+    position:fixed; top:22px; left:24px; display:flex; align-items:center; gap:10px;
+    z-index:3; pointer-events:none;
   }
-  .locate:hover { filter: brightness(.93); }
-  .locate svg { width: 17px; height: 17px; }
+  .brand b { font-size:1.02rem; letter-spacing:-.01em; }
+  .brand b i { color:var(--red); font-style:normal; }
 
-  .or { display: flex; align-items: center; gap: 12px; margin: 18px 0;
-        color: var(--mute); font-size: .8rem; }
-  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
-
-  .coords { display: flex; gap: 8px; }
-  .coords input {
-    flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: var(--ink);
-    border: 1px solid var(--hair); border-radius: 10px; background: var(--white);
+  /* Nishaan: blinks on idle, bounces when an answer lands. */
+  #pin { width:34px; height:38px; overflow:visible; }
+  #pin .eye { transform-origin:center; animation:blink 6.5s infinite; }
+  @keyframes blink { 0%,92%,100%{transform:scaleY(1)} 95%{transform:scaleY(.12)} }
+  #pin.hit { animation:bounce .62s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes bounce {
+    0%{transform:translateY(0) scale(1,1)} 22%{transform:translateY(-13px) scale(.92,1.1)}
+    52%{transform:translateY(0) scale(1.12,.88)} 74%{transform:translateY(-4px) scale(.98,1.02)}
+    100%{transform:translateY(0) scale(1,1)}
   }
-  .coords input::placeholder { color: var(--mute); }
-  .coords input:focus { outline: 2px solid var(--red); outline-offset: -1px; border-color: transparent; }
-  .coords button {
-    flex: none; width: 46px; border: 1px solid var(--hair); background: var(--white);
-    border-radius: 10px; cursor: pointer; color: var(--red); font-size: 1.2rem; line-height: 1;
+  @media (prefers-reduced-motion:reduce){
+    #pin .eye,#pin.hit{animation:none}
   }
-  .coords button:hover { border-color: var(--red); }
 
-  .chips { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .87rem; }
-  .chips[hidden] { display: none; }
-  .chips button {
-    border: 0; background: none; padding: 0; font: inherit; color: var(--mute);
-    cursor: pointer; border-bottom: 1px solid transparent;
+  /* The answer, bottom-left, over the globe. */
+  .answer {
+    position:fixed; left:24px; bottom:24px; z-index:3; max-width:min(440px,calc(100vw - 48px));
+    background:var(--pane); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--hair); border-radius:16px; padding:18px 20px 16px;
+    opacity:0; transform:translateY(10px); transition:opacity .3s,transform .3s;
   }
-  .chips button:hover { color: var(--red); border-bottom-color: var(--red); }
+  .answer.on { opacity:1; transform:none; }
+  .kicker { font-size:.66rem; letter-spacing:.15em; text-transform:uppercase; color:var(--mute); }
+  .city { font-size:clamp(1.9rem,5.2vw,2.6rem); line-height:1.05; letter-spacing:-.03em;
+          font-weight:700; color:var(--red); margin:4px 0 6px; }
+  .where { font-size:.95rem; }
+  .where span { color:var(--mute); }
+  .meta { margin-top:8px; font-size:.76rem; color:var(--mute); font-variant-numeric:tabular-nums; }
 
-  .note { margin-top: 26px; color: var(--mute); font-size: .87rem; }
-  .note.err { color: var(--red); }
+  /* Controls, bottom-right. */
+  .controls { position:fixed; right:24px; bottom:24px; z-index:3; display:flex;
+              flex-direction:column; align-items:flex-end; gap:10px; }
+  button {
+    font:inherit; font-weight:600; font-size:.92rem; padding:11px 16px; border-radius:11px;
+    cursor:pointer; border:1px solid var(--hair); background:var(--pane); color:var(--ink);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  }
+  button.primary { background:var(--red); color:#fff; border-color:transparent; }
+  button:hover { filter:brightness(.96); }
+  .hint { font-size:.78rem; color:var(--mute); background:var(--pane); padding:7px 12px;
+          border-radius:999px; border:1px solid var(--hair); backdrop-filter:blur(14px); }
 
-  /* The answer. One word, large, because that is the whole question. */
-  .answer { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--hair); }
-  .answer[hidden] { display: none; }
-  .kicker { font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; color: var(--mute); }
-  .city { font-size: clamp(2.1rem, 9vw, 3rem); line-height: 1.05; letter-spacing: -.03em;
-          font-weight: 700; margin: 6px 0 12px; color: var(--red); }
-  .where { color: var(--ink); }
-  .where span { color: var(--mute); }
-  .meta { margin-top: 6px; color: var(--mute); font-size: .84rem; }
-
-  .also { margin-top: 30px; }
-  .also[hidden] { display: none; }
-  .also p { margin: 0 0 6px; font-size: .72rem; letter-spacing: .13em;
-            text-transform: uppercase; color: var(--mute); }
-  .also div { color: var(--ink); font-size: .93rem; }
-  .also em { color: var(--mute); font-style: normal; }
-
-  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--hair);
-           color: var(--mute); font-size: .8rem; }
-  footer a { color: var(--red); }
+  /* Loading + fallback share one centred pane. */
+  .center {
+    position:fixed; inset:0; display:grid; place-items:center; z-index:4;
+    background:var(--white); transition:opacity .45s; text-align:center; padding:24px;
+  }
+  .center.gone { opacity:0; pointer-events:none; }
+  .center p { color:var(--mute); font-size:.9rem; margin:14px 0 0; }
+  .bar { width:210px; height:3px; background:var(--hair); border-radius:2px; overflow:hidden; margin:18px auto 0; }
+  .bar i { display:block; height:100%; width:0; background:var(--red); transition:width .25s; }
+  .fallback { display:none; }
+  .fallback input { width:130px; padding:10px 12px; font:inherit; color:var(--ink);
+    border:1px solid var(--hair); border-radius:10px; background:var(--white); margin:0 4px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <img src="mascot.svg" alt="">
-    <b>Nishaan<i>.</i></b>
-  </header>
 
-  <h1>Which city do these coordinates belong to?</h1>
+<div id="stage"><canvas id="globe"></canvas></div>
 
-  <button class="locate" id="here">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-      <circle cx="12" cy="12" r="8"/>
-    </svg>
-    Use my location
-  </button>
-
-  <div class="or">or enter coordinates</div>
-  <div class="coords">
-    <input id="lat" inputmode="decimal" placeholder="Latitude" autocomplete="off">
-    <input id="lon" inputmode="decimal" placeholder="Longitude" autocomplete="off">
-    <button id="go" aria-label="Look up">→</button>
-  </div>
-
-  <div class="chips" id="chips" hidden></div>
-  <p class="note" id="note">Loading place data…</p>
-
-  <section class="answer" id="answer" hidden>
-    <div class="kicker">You are in</div>
-    <div class="city" id="city"></div>
-    <div class="where" id="where"></div>
-    <div class="meta" id="meta"></div>
-
-    <div class="also" id="also" hidden>
-      <p>Also clubbed under this city</p>
-      <div id="alsoList"></div>
-    </div>
-  </section>
-
-  <footer>
-    <p>Runs entirely in your browser — the place data is downloaded once and every
-    lookup happens on your device. Nothing is sent to a server.</p>
-    <p>Data © <a href="https://www.geonames.org/">GeoNames</a>,
-    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
-  </footer>
+<div class="brand">
+  <svg id="pin" viewBox="0 0 120 132" aria-hidden="true">
+    <path fill="#d92819" d="M60 10C40.65 10 25 25.65 25 45c0 26.25 35 65 35 65s35-38.75 35-65c0-19.35-15.65-35-35-35z"/>
+    <circle class="eye" cx="48" cy="40" r="6.5" fill="#fff"/>
+    <circle class="eye" cx="72" cy="40" r="6.5" fill="#fff"/>
+    <path d="M47 56q13 12 26 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  </svg>
+  <b>Nishaan<i>.</i></b>
 </div>
+
+<section class="answer" id="answer" aria-live="polite">
+  <div class="kicker">You are in</div>
+  <div class="city" id="city"></div>
+  <div class="where" id="where"></div>
+  <div class="meta" id="meta"></div>
+</section>
+
+<div class="controls">
+  <div class="hint" id="hint">Drag to spin · click anywhere</div>
+  <button class="primary" id="here">Use my location</button>
+</div>
+
+<div class="center" id="loading">
+  <div>
+    <svg viewBox="0 0 120 132" width="52" aria-hidden="true">
+      <path fill="#d92819" d="M60 10C40.65 10 25 25.65 25 45c0 26.25 35 65 35 65s35-38.75 35-65c0-19.35-15.65-35-35-35z"/>
+      <circle cx="48" cy="40" r="6.5" fill="#fff"/><circle cx="72" cy="40" r="6.5" fill="#fff"/>
+      <path d="M47 56q13 12 26 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+    <p id="status">Loading 621,128 places…</p>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="fallback" id="fallback">
+      <p style="margin-bottom:12px">This browser has no WebGL, so the globe is unavailable.<br>Enter coordinates instead.</p>
+      <input id="lat" inputmode="decimal" placeholder="Latitude" value="12.9352">
+      <input id="lon" inputmode="decimal" placeholder="Longitude" value="77.6245">
+      <button class="primary" id="go">Look up</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>
