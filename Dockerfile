@@ -8,7 +8,7 @@ RUN sh scripts/build-data.sh
 
 FROM node:22-alpine
 WORKDIR /app
-COPY package.json geocode.js server.js ./
+COPY package.json core.js geocode.js server.js ./
 COPY --from=data /app/data ./data
 ENV PORT=3000 CACHE_FILE=/tmp/cache.json
 EXPOSE 3000
